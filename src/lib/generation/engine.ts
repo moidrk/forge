@@ -2,7 +2,6 @@ import { DesignRecipe, LayerConfig, Seed } from './types';
 import { RNG } from './rng';
 
 import { renderBaseLayer, generateBaseLayerSVG } from './modules/base';
-import { renderGridCollageLayer, generateGridCollageLayerSVG } from './modules/gridCollage';
 import { renderHalftoneLayer, generateHalftoneLayerSVG } from './modules/halftone';
 import { renderColorGradeLayer, generateColorGradeLayerSVG } from './modules/colorGrade';
 import { renderPaperLayer, generatePaperLayerSVG } from './modules/paper';
