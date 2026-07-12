@@ -72,10 +72,11 @@ export function LayerPropertiesPanel() {
   }
 
   // If the layer doesn't have custom props (e.g. standard uploaded image), it might just have opacity/blend mode.
-  const props = layerProps || { type: "image", imageBlendMode: "source-over", imageOpacity: 1 };
+  const props = layerProps || { imageBlendMode: "source-over", imageOpacity: 1 };
+  const currentType = props.type || "image";
 
   const updateProp = (key: string, value: any) => {
-    const newStore = { ...store, [layerId]: { ...props, [key]: value } };
+    const newStore = { ...store, [layerId]: { ...props, [key]: value, type: currentType } };
     dispatch({
       type: "controls.setValue",
       target: "layerPropertiesStore",
@@ -85,9 +86,9 @@ export function LayerPropertiesPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">{props.type} Properties</div>
+      <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">{currentType} Properties</div>
       
-      {props.type === "shader" && (
+      {currentType === "shader" && (
         <>
           <Select
             name="Shader Type"
@@ -104,7 +105,7 @@ export function LayerPropertiesPanel() {
         </>
       )}
 
-      {props.type === "techOverlay" && (
+      {currentType === "techOverlay" && (
         <>
           <Select
             name="Style"
@@ -118,14 +119,14 @@ export function LayerPropertiesPanel() {
         </>
       )}
 
-      {props.type === "glitch" && (
+      {currentType === "glitch" && (
         <>
           <Slider name="Intensity" value={props.glitchIntensity ?? 0.5} min={0} max={1} step={0.05} onValueChange={(val) => updateProp("glitchIntensity", val)} />
           <Checkbox name="RGB Split (VHS)" checked={props.glitchRGB ?? false} onCheckedChange={(val) => updateProp("glitchRGB", val)} />
         </>
       )}
 
-      {props.type === "halftone" && (
+      {currentType === "halftone" && (
         <>
           <Select
             name="Style"
@@ -140,7 +141,7 @@ export function LayerPropertiesPanel() {
         </>
       )}
 
-      {props.type === "imageLayout" && (
+      {currentType === "imageLayout" && (
         <>
           <Slider name="Layout Seed" value={props.layoutSeed ?? 446331} min={0} max={1000000} step={1} onValueChange={(val) => updateProp("layoutSeed", val)} />
           <Select
@@ -155,7 +156,7 @@ export function LayerPropertiesPanel() {
         </>
       )}
 
-      {props.type === "image" && (
+      {currentType === "image" && (
         <>
           <Select
              name="Shader Filter"
