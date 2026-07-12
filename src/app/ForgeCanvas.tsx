@@ -229,13 +229,19 @@ export default function ForgeCanvas() {
 
     dragStateRef.current = null;
     
-    if (mode === "move" && (Math.abs(dx) > 1 || Math.abs(dy) > 1)) {
-      const existingX = store[layerId]?.transformX ?? 0;
-      const existingY = store[layerId]?.transformY ?? 0;
-      dispatch({ type: "controls.setValue", target: `${layerId}.transformX`, value: existingX + dx });
-      dispatch({ type: "controls.setValue", target: `${layerId}.transformY`, value: existingY + dy });
-    } else if (mode === "scale" && finalScale !== undefined) {
-      dispatch({ type: "controls.setValue", target: `${layerId}.scale`, value: finalScale });
+    if ((mode === "move" && (Math.abs(dx) > 1 || Math.abs(dy) > 1)) || (mode === "scale" && finalScale !== undefined)) {
+      const newStore = { ...store };
+      if (!newStore[layerId]) newStore[layerId] = {};
+      
+      if (mode === "move") {
+        const existingX = store[layerId]?.transformX ?? 0;
+        const existingY = store[layerId]?.transformY ?? 0;
+        newStore[layerId] = { ...newStore[layerId], transformX: existingX + dx, transformY: existingY + dy };
+      } else if (mode === "scale" && finalScale !== undefined) {
+        newStore[layerId] = { ...newStore[layerId], scale: finalScale };
+      }
+      
+      dispatch({ type: "controls.setValue", target: "layerPropertiesStore", value: JSON.stringify(newStore) });
     } else {
       generatePreview(currentRecipeRef.current, canvasRef.current!);
     }
