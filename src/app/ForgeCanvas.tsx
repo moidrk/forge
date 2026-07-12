@@ -67,7 +67,9 @@ export default function ForgeCanvas() {
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!currentRecipeRef.current || !wrapperRef.current) return;
     
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (err) {}
 
     const { x, y } = getLogicCoords(e);
     const target = e.target as HTMLElement;
@@ -132,6 +134,12 @@ export default function ForgeCanvas() {
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragStateRef.current || !currentRecipeRef.current || !wrapperRef.current) return;
     
+    // Safety net: if mouse is released but we missed the pointerup event
+    if (e.buttons === 0 && e.pointerType === "mouse") {
+      handlePointerUp(e);
+      return;
+    }
+
     const { x, y } = getLogicCoords(e);
     dragStateRef.current.currentX = x;
     dragStateRef.current.currentY = y;
@@ -188,7 +196,10 @@ export default function ForgeCanvas() {
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragStateRef.current || !currentRecipeRef.current) return;
-    e.currentTarget.releasePointerCapture(e.pointerId);
+    
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch (err) {}
     
     const { layerId, startX, startY, currentX, currentY, mode } = dragStateRef.current;
     
