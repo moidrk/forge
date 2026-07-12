@@ -1336,12 +1336,23 @@ export function toolcraftReducer(
           ? getSingleMediaImportId(state)
           : undefined) ??
         getNextMediaId(state);
+      let parentGroupId = undefined;
+      let insertIndex = state.layers.length;
+      if (state.selectedLayerId) {
+        const selectedLayer = state.layers.find((l) => l.id === state.selectedLayerId);
+        if (selectedLayer) {
+          parentGroupId = selectedLayer.kind === "group" ? selectedLayer.id : selectedLayer.parentGroupId;
+          insertIndex = state.layers.findIndex(l => l.id === selectedLayer.id) + 1;
+        }
+      }
+
       const layer = {
         displayName: command.asset.layerName ?? getImportedLayerName(command.asset.fileName),
         id: layerId,
         kind: "layer" as const,
         name: command.asset.layerName ?? getImportedLayerName(command.asset.fileName),
         visible: true,
+        ...(parentGroupId ? { parentGroupId } : {})
       };
       const mediaAsset = {
         ...(command.asset.assetKind ? { assetKind: command.asset.assetKind } : {}),
@@ -1354,13 +1365,17 @@ export function toolcraftReducer(
         ...(command.asset.size ? { size: command.asset.size } : {}),
         ...(sourceTarget ? { sourceTarget } : {}),
       };
+
+      const newLayersArray = [...state.layers];
+      newLayersArray.splice(insertIndex, 0, layer);
+
       const layers = shouldReplaceSingleLayerMedia
         ? sourceTarget
           ? state.layers.some((entry) => entry.id === layerId)
             ? state.layers.map((entry) => (entry.id === layerId ? layer : entry))
-            : [...state.layers, layer]
+            : newLayersArray
           : [layer]
-        : [...state.layers, layer];
+        : newLayersArray;
       const mediaAssets = shouldReplaceSingleLayerMedia
         ? sourceTarget
           ? existingSourceMediaAsset
