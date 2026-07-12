@@ -14,6 +14,13 @@ export const appSchema = defineToolcraft({
         {
           title: "Layer Actions",
           controls: {
+            "images": {
+              target: "images",
+              type: "fileDrop",
+              assetKind: "image",
+              multiple: true,
+              performanceRole: "workload"
+            },
             layerActions: {
               target: "layerActions",
               type: "actions",
