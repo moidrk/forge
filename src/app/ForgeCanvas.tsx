@@ -51,6 +51,7 @@ export function ForgeCanvas() {
               getColor(values.shaderColor3, "#0000ff"),
               getColor(values.shaderColor4, "#ffff00")
             ]}
+            image={values.shaderWarpImage && state.mediaAssets.filter((a: any) => a.sourceTarget === "images")[0] ? state.mediaAssets.filter((a: any) => a.sourceTarget === "images")[0].dataUrl : undefined}
           />
         )}
       </div>
@@ -162,12 +163,12 @@ export function createRecipeFromState(state: any, images: HTMLImageElement[]): D
   };
 }
 
-export function ShaderRenderer({ type, colors }: { type: string, colors: string[] }) {
+export function ShaderRenderer({ type, colors, image }: { type: string, colors: string[], image?: string }) {
   const commonProps = { style: { width: '100%', height: '100%' } as React.CSSProperties };
   
   switch (type) {
     case "LiquidMetal":
-      return <LiquidMetal {...commonProps} colorBack={colors[0]} colorTint={colors[1]} />;
+      return <LiquidMetal {...commonProps} colorBack={colors[0]} colorTint={colors[1]} image={image} />;
     case "Metaballs":
       return <Metaballs {...commonProps} colors={colors.slice(0, 3)} colorBack={colors[3]} />;
     case "GodRays":
@@ -177,7 +178,7 @@ export function ShaderRenderer({ type, colors }: { type: string, colors: string[
     case "GrainGradient":
       return <GrainGradient {...commonProps} colors={colors} colorBack={colors[0]} />;
     case "GemSmoke":
-      return <GemSmoke {...commonProps} colors={colors} colorBack={colors[0]} />;
+      return <GemSmoke {...commonProps} colors={colors} colorBack={colors[0]} image={image} />;
     case "Warp":
       return <Warp {...commonProps} colors={colors} />;
     case "MeshGradient":

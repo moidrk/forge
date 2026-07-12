@@ -25,6 +25,7 @@ export function AppHome(): React.JSX.Element {
         imageOpacity: randomRange(0.3, 1),
         layoutStyle: styles[randomInt(0, 1)],
         shaderType: shaderTypes[randomInt(0, shaderTypes.length - 1)],
+        shaderWarpImage: Math.random() > 0.5,
         shaderColor1: { hex: randomHexColor() },
         shaderColor2: { hex: randomHexColor() },
         shaderColor3: { hex: randomHexColor() },

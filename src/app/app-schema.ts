@@ -70,23 +70,8 @@ export const appSchema = defineToolcraft({
           title: "Shader Background",
           controls: {
             shaderEnabled: { target: "shaderEnabled", type: "checkbox", label: "Enable Shader", defaultValue: true },
-            shaderType: {
-              target: "shaderType",
-              type: "select",
-              label: "Effect",
-              options: [
-                { label: "Mesh Gradient", value: "MeshGradient" },
-                { label: "Liquid Metal", value: "LiquidMetal" },
-                { label: "Metaballs", value: "Metaballs" },
-                { label: "God Rays", value: "GodRays" },
-                { label: "Neuro Noise", value: "NeuroNoise" },
-                { label: "Grain Gradient", value: "GrainGradient" },
-                { label: "Gem Smoke", value: "GemSmoke" },
-                { label: "Warp", value: "Warp" }
-              ],
-              defaultValue: "MeshGradient",
-              visibleWhen: { target: "shaderEnabled", equals: true }
-            },
+            shaderType: { target: "shaderType", type: "select", label: "Shader Type", options: [ { label: "Mesh Gradient", value: "MeshGradient" }, { label: "Liquid Metal", value: "LiquidMetal" }, { label: "Metaballs", value: "Metaballs" }, { label: "God Rays", value: "GodRays" }, { label: "Neuro Noise", value: "NeuroNoise" }, { label: "Grain Gradient", value: "GrainGradient" }, { label: "Gem Smoke", value: "GemSmoke" }, { label: "Warp", value: "Warp" } ], defaultValue: "MeshGradient", visibleWhen: { target: "shaderEnabled", equals: true } },
+            shaderWarpImage: { target: "shaderWarpImage", type: "checkbox", label: "Warp Image with Shader", defaultValue: false, description: "Only applies to Liquid Metal and Gem Smoke shaders. Distorts the first uploaded image instead of drawing a background pattern.", visibleWhen: { target: "shaderEnabled", equals: true } },
             shaderColor1: { target: "shaderColor1", type: "color", label: "Color 1", defaultValue: "#ff0000", visibleWhen: { target: "shaderEnabled", equals: true } },
             shaderColor2: { target: "shaderColor2", type: "color", label: "Color 2", defaultValue: "#00ff00", visibleWhen: { target: "shaderEnabled", equals: true } },
             shaderColor3: { target: "shaderColor3", type: "color", label: "Color 3", defaultValue: "#0000ff", visibleWhen: { target: "shaderEnabled", equals: true } },
