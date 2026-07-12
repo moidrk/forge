@@ -12,22 +12,32 @@ export function AppHome(): React.JSX.Element {
   const handlePanelAction = React.useCallback(async (context: any) => {
     const actionVal = context.action.value;
 
-    if (actionVal === "addShader" || actionVal === "addTechOverlay" || actionVal === "addGlitch" || actionVal === "addHalftone") {
+    if (actionVal === "addShader" || actionVal === "addTechOverlay" || actionVal === "addGlitch" || actionVal === "addHalftone" || actionVal === "addImageLayout") {
       const typeMap: Record<string, string> = {
         addShader: "shader",
         addTechOverlay: "techOverlay",
         addGlitch: "glitch",
-        addHalftone: "halftone"
+        addHalftone: "halftone",
+        addImageLayout: "imageLayout"
       };
       const nameMap: Record<string, string> = {
         addShader: "Shader Background",
         addTechOverlay: "Tech Overlay",
         addGlitch: "Glitch FX",
-        addHalftone: "Halftone"
+        addHalftone: "Halftone",
+        addImageLayout: "Grid Layout"
       };
       const type = typeMap[actionVal];
       const name = nameMap[actionVal];
       const layerId = `${type}-${Date.now()}`;
+
+      let parentGroupId: string | undefined = undefined;
+      if (context.state.selectedLayerId) {
+        const selectedLayer = context.state.layers.find((l: any) => l.id === context.state.selectedLayerId);
+        if (selectedLayer) {
+          parentGroupId = selectedLayer.kind === "group" ? selectedLayer.id : selectedLayer.parentGroupId;
+        }
+      }
 
       // Add the layer to the left panel
       context.dispatch({
@@ -36,7 +46,8 @@ export function AppHome(): React.JSX.Element {
           id: layerId,
           name: name,
           kind: "layer",
-          visible: true
+          visible: true,
+          parentGroupId
         },
         insertIndex: 0
       });
