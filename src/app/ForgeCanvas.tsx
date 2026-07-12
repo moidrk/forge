@@ -65,6 +65,7 @@ export default function ForgeCanvas() {
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return; // Only allow left-click interactions
     if (!currentRecipeRef.current || !wrapperRef.current) return;
     
     try {
@@ -124,9 +125,6 @@ export default function ForgeCanvas() {
     if (hitLayerId) {
        e.stopPropagation();
        dragStateRef.current = { layerId: hitLayerId, mode: "move", startX: x, startY: y, currentX: x, currentY: y };
-       if (hitLayerId !== state.selectedLayerId) {
-         dispatch({ layerId: hitLayerId, type: "layers.select" });
-       }
     } else {
        if (state.selectedLayerId) {
          dispatch({ type: "layers.reorder", layers: state.layers, selectedLayerId: null });
@@ -208,6 +206,11 @@ export default function ForgeCanvas() {
     
     const { layerId, startX, startY, currentX, currentY, mode } = dragStateRef.current;
     
+    // Select the layer if it was just clicked
+    if (layerId !== state.selectedLayerId) {
+       dispatch({ layerId, type: "layers.select" });
+    }
+    
     const dx = currentX - startX;
     const dy = currentY - startY;
     
@@ -248,8 +251,10 @@ export default function ForgeCanvas() {
   };
 
   const handleOuterPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.target === containerRef.current && state.selectedLayerId) {
-       dispatch({ type: "layers.reorder", layers: state.layers, selectedLayerId: null });
+    if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+       if (state.selectedLayerId) {
+          dispatch({ type: "layers.reorder", layers: state.layers, selectedLayerId: null });
+       }
     }
   };
 
