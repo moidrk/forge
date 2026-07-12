@@ -47,6 +47,31 @@ export default function ForgeCanvas() {
 
   const shaderLayers = state.layers.filter(l => l.visible && store[l.id]?.type === "shader");
 
+  const shaderLoopRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    const hasLiveShader = shaderLayers.some(layer => !store[layer.id]?.shaderPaused);
+    
+    if (hasLiveShader) {
+      const loop = () => {
+        // Only run the global background loop if we aren't currently dragging, 
+        // because dragging handles its own optimized 60fps render loop
+        if (currentRecipeRef.current && canvasRef.current && !dragStateRef.current) {
+          generatePreview(currentRecipeRef.current, canvasRef.current);
+        }
+        shaderLoopRef.current = requestAnimationFrame(loop);
+      };
+      
+      shaderLoopRef.current = requestAnimationFrame(loop);
+      
+      return () => {
+        if (shaderLoopRef.current !== null) {
+          cancelAnimationFrame(shaderLoopRef.current);
+        }
+      };
+    }
+  }, [state.layers, store]);
+
   const getColor = (val: any, defaultColor: string) => {
     if (!val) return defaultColor;
     if (typeof val === 'string') return val;
