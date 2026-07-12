@@ -118,3 +118,57 @@ button {
   background-color: color-mix(in oklab, var(--foreground) 10%, transparent);
   background-clip: padding-box;
 }
+
+/* Driver.js Custom Branded Styling */
+.driver-popover {
+  background-color: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.driver-popover-title {
+  color: var(--card-foreground) !important;
+}
+
+.driver-popover-description {
+  color: color-mix(in oklab, var(--card-foreground) 80%, transparent) !important;
+}
+
+.driver-popover-close-btn {
+  color: color-mix(in oklab, var(--card-foreground) 50%, transparent) !important;
+}
+.driver-popover-close-btn:hover {
+  color: var(--card-foreground) !important;
+}
+
+.driver-popover-progress-text {
+  color: color-mix(in oklab, var(--card-foreground) 60%, transparent) !important;
+}
+
+.driver-popover-footer-btn {
+  background-color: #4a5d23 !important; /* Olive green accent */
+  color: #fff !important;
+  border: none !important;
+  border-radius: var(--button-radius-sm) !important;
+}
+.driver-popover-footer-btn:hover,
+.driver-popover-footer-btn:focus {
+  background-color: #5d742d !important; /* Lighter olive */
+}
+.driver-popover-footer-btn.driver-popover-btn-disabled {
+  background-color: #2a3315 !important; /* Dark olive for disabled */
+  color: #888 !important;
+}
+
+.driver-popover-arrow-side-left {
+  border-right-color: var(--card) !important;
+}
+.driver-popover-arrow-side-right {
+  border-left-color: var(--card) !important;
+}
+.driver-popover-arrow-side-top {
+  border-bottom-color: var(--card) !important;
+}
+.driver-popover-arrow-side-bottom {
+  border-top-color: var(--card) !important;
+}
