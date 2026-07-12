@@ -19,7 +19,7 @@ import {
   ScrollFade,
   stopPanelHeaderButtonPointerDown,
 } from "@/toolcraft/ui";
-import { Eye, EyeOff, Trash2, Lock, Unlock } from "lucide-react";
+import { Eye, EyeOff, Trash2, Lock, Unlock, Image as ImageIcon } from "lucide-react";
 
 import type { ToolcraftLayer, ToolcraftPanelState } from "../state/types";
 import {
@@ -690,10 +690,12 @@ function AddLayerPicker({
   groupCreation,
   onAddGroup,
   onAddLayer,
+  onAddImage,
 }: {
   groupCreation: boolean;
   onAddGroup: () => void;
   onAddLayer: () => void;
+  onAddImage: () => void;
 }): React.JSX.Element {
   const [open, setOpen] = React.useState(false);
 
@@ -703,6 +705,10 @@ function AddLayerPicker({
   };
   const addGroup = (): void => {
     onAddGroup();
+    setOpen(false);
+  };
+  const addImage = (): void => {
+    onAddImage();
     setOpen(false);
   };
 
@@ -752,6 +758,16 @@ function AddLayerPicker({
           <FolderSimpleIcon className="size-4" />
           Group
         </Button>
+        <Button
+          className="h-8 justify-start gap-2 px-2 text-xs"
+          onClick={addImage}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          <ImageIcon className="size-4" />
+          Image
+        </Button>
       </PopoverContent>
     </Popover>
   );
@@ -762,12 +778,14 @@ function LayersPanelHeader({
   groupCreation,
   onAddGroup,
   onAddLayer,
+  onAddImage,
   onToggleCollapsed,
 }: {
   collapsed: boolean;
   groupCreation: boolean;
   onAddGroup: () => void;
   onAddLayer: () => void;
+  onAddImage: () => void;
   onToggleCollapsed: () => void;
 }): React.JSX.Element {
   return (
@@ -786,6 +804,7 @@ function LayersPanelHeader({
               groupCreation={groupCreation}
               onAddGroup={onAddGroup}
               onAddLayer={onAddLayer}
+              onAddImage={onAddImage}
             />
           )}
           <PanelIconButton
@@ -820,6 +839,7 @@ export function LayersPanel({
   const highlightedGroupIdRef = React.useRef<string | null>(null);
   const insertTargetRef = React.useRef<LayerInsertTarget | null>(null);
   const listRef = React.useRef<HTMLUListElement | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const collapsed = panelState?.collapsed ?? internalCollapsed;
   const placement = panelPlacement ?? (framed ? "frame" : "surface");
   const visibleLayers = React.useMemo(() => getToolcraftVisibleLayerRows(state.layers), [
@@ -874,6 +894,36 @@ export function LayersPanel({
       layer: { kind: "group", parentGroupId },
       type: "layers.add",
     });
+  };
+
+  const addImage = (): void => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+         dispatch({
+           asset: {
+             assetKind: "image",
+             dataUrl,
+             fileName: file.name,
+             mimeType: file.type || "image/*",
+             position: { x: 0, y: 0 },
+             size: { width: img.width, height: img.height, unit: "px" as const },
+           },
+           type: "media.import"
+         });
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const clearDragState = (): void => {
@@ -1221,18 +1271,23 @@ export function LayersPanel({
 
   const panelSurface = (
     <PanelSurface
-      className={cn(
-        "pointer-events-auto flex max-h-[calc(100dvh-1.25rem)] w-[240px] flex-col overflow-hidden rounded-lg p-0",
-        className,
-      )}
-      data-toolcraft-layers-panel=""
+      className={className}
+      data-panel-framed={framed}
       data-panel-id="layers"
     >
+      <input 
+        type="file" 
+        accept="image/*" 
+        style={{ display: 'none' }} 
+        ref={fileInputRef} 
+        onChange={handleImageFileChange} 
+      />
       <LayersPanelHeader
         collapsed={collapsed}
         groupCreation={groupCreation}
         onAddGroup={addGroup}
         onAddLayer={addLayer}
+        onAddImage={addImage}
         onToggleCollapsed={() => updateCollapsed(!collapsed)}
       />
       {collapsed ? null : (
