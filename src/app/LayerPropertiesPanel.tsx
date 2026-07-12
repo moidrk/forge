@@ -94,22 +94,31 @@ export function LayerPropertiesPanel() {
         </>
       )}
 
-      {props.type === "image" && (
-        <>
-          <Select
-            name="Blend Mode"
-            options={[
-              { label: "Normal", value: "source-over" },
-              { label: "Multiply", value: "multiply" },
-              { label: "Screen", value: "screen" },
-              { label: "Overlay", value: "overlay" }
-            ]}
-            value={props.imageBlendMode || "source-over"}
-            onValueChange={(val) => updateProp("imageBlendMode", val)}
-          />
-          <Slider name="Opacity" value={props.imageOpacity ?? 1} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("imageOpacity", val)} />
-        </>
-      )}
+      {/* Universal Blend Controls */}
+      <Select
+        name="Blend Mode"
+        options={[
+          { label: "Normal", value: "source-over" },
+          { label: "Multiply", value: "multiply" },
+          { label: "Screen", value: "screen" },
+          { label: "Overlay", value: "overlay" },
+          { label: "Darken", value: "darken" },
+          { label: "Lighten", value: "lighten" },
+          { label: "Color Dodge", value: "color-dodge" },
+          { label: "Color Burn", value: "color-burn" },
+          { label: "Hard Light", value: "hard-light" },
+          { label: "Soft Light", value: "soft-light" },
+          { label: "Difference", value: "difference" },
+          { label: "Exclusion", value: "exclusion" },
+          { label: "Hue", value: "hue" },
+          { label: "Saturation", value: "saturation" },
+          { label: "Color", value: "color" },
+          { label: "Luminosity", value: "luminosity" }
+        ]}
+        value={props.blendMode || props.imageBlendMode || "source-over"}
+        onValueChange={(val) => updateProp("blendMode", val)}
+      />
+      <Slider name="Opacity" value={props.opacity ?? props.imageOpacity ?? 1} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("opacity", val)} />
     </div>
   );
 }

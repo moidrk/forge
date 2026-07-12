@@ -29,6 +29,10 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement)
 
     const rng = new RNG(recipe.seed + i);
 
+    ctx.save();
+    ctx.globalCompositeOperation = (layer.params.blendMode as GlobalCompositeOperation) || "source-over";
+    ctx.globalAlpha = layer.params.opacity ?? 1;
+
     if (layer.type === "shader") {
       const shaderCanvas = document.querySelector<HTMLCanvasElement>(`#shader-${layer.id} canvas`);
       if (shaderCanvas && shaderCanvas.width > 0 && shaderCanvas.height > 0) {
@@ -39,9 +43,6 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement)
         }
       }
     } else if (layer.type === "image" && layer.params.image) {
-      ctx.globalCompositeOperation = layer.params.blendMode || "source-over";
-      ctx.globalAlpha = layer.params.opacity ?? 1;
-      
       const img = layer.params.image;
       
       // Calculate object-fit: cover logic
@@ -64,18 +65,15 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement)
       }
       
       ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-      
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = "source-over";
     } else if (layer.type === "techOverlay") {
       renderTechOverlayLayer(ctx, width, height, rng, layer.params);
     } else if (layer.type === "halftone") {
-      ctx.globalCompositeOperation = 'overlay';
       renderHalftoneLayer(ctx, width, height, rng, layer.params);
-      ctx.globalCompositeOperation = 'source-over';
     } else if (layer.type === "glitch") {
       renderGlitchLayer(ctx, width, height, rng, layer.params);
     }
+
+    ctx.restore();
   }
 
   ctx.restore();

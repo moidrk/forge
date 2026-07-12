@@ -93,9 +93,11 @@ export function AppHome(): React.JSX.Element {
           props.halftoneStyle = halftoneStyles[randomInt(0, 2)];
         } else if (props.type === "image" || props.type === undefined) {
           props.type = "image";
-          props.imageBlendMode = blendModes[randomInt(0, blendModes.length - 1)];
-          props.imageOpacity = randomRange(0.3, 1);
         }
+        
+        // Universal blend properties
+        props.blendMode = blendModes[randomInt(0, blendModes.length - 1)];
+        props.opacity = randomRange(0.3, 1);
         
         store[layer.id] = props;
       }

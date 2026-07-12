@@ -99,10 +99,15 @@ export function createRecipeFromState(state: any, store: Record<string, any>, im
 
     let params: any = { ...props };
     
+    let defaultBlendMode = "source-over";
+    if (type === "halftone") defaultBlendMode = "overlay";
+    if (type === "techOverlay") defaultBlendMode = "screen";
+
+    params.blendMode = props.blendMode || props.imageBlendMode || defaultBlendMode;
+    params.opacity = props.opacity ?? props.imageOpacity ?? 1;
+    
     if (type === "image") {
       params.image = imageMap.get(layer.id);
-      params.blendMode = props.imageBlendMode || "source-over";
-      params.opacity = props.imageOpacity ?? 1;
     } else if (type === "shader") {
       params.color1 = getColor(props.shaderColor1, "#ff0000");
       params.color2 = getColor(props.shaderColor2, "#00ff00");
