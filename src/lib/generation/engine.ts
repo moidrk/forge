@@ -89,7 +89,30 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement,
         finalY += dragOverrides[layer.id].dy;
       }
       
-      ctx.drawImage(layer.params.image, finalX, finalY, bounds.width, bounds.height);
+      const hasShader = layer.params.imageShaderFilter && layer.params.imageShaderFilter !== "none";
+      const preserveTransparency = layer.params.preserveTransparency ?? true;
+
+      if (hasShader) {
+         const shaderCanvas = document.querySelector<HTMLCanvasElement>(`#shader-${layer.id} canvas`);
+         if (shaderCanvas && shaderCanvas.width > 0 && shaderCanvas.height > 0) {
+            if (preserveTransparency) {
+               // Draw the original image first to establish the alpha mask
+               ctx.drawImage(layer.params.image, finalX, finalY, bounds.width, bounds.height);
+               // Switch composite mode to clip the shader inside the image pixels
+               ctx.globalCompositeOperation = "source-in";
+               ctx.drawImage(shaderCanvas, finalX, finalY, bounds.width, bounds.height);
+            } else {
+               // Draw the shader directly as a rectangle
+               ctx.drawImage(shaderCanvas, finalX, finalY, bounds.width, bounds.height);
+            }
+         } else {
+            // Fallback to normal image if shader canvas isn't ready
+            ctx.drawImage(layer.params.image, finalX, finalY, bounds.width, bounds.height);
+         }
+      } else {
+         // Standard image rendering
+         ctx.drawImage(layer.params.image, finalX, finalY, bounds.width, bounds.height);
+      }
     } else if (layer.type === "techOverlay") {
       renderTechOverlayLayer(ctx, width, height, rng, layer.params);
     } else if (layer.type === "halftone") {

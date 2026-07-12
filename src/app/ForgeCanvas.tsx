@@ -2,7 +2,7 @@ import * as React from "react";
 import { useToolcraft } from "@/toolcraft/runtime/react";
 import { generatePreview, getImageLayerBounds } from "@/lib/generation/engine";
 import { DesignRecipe, DesignRecipeLayer } from "@/lib/generation/types";
-import { MeshGradient, GodRays, NeuroNoise, LiquidMetal, GrainGradient, Metaballs, GemSmoke, Warp } from "@paper-design/shaders-react";
+import { MeshGradient, GodRays, NeuroNoise, LiquidMetal, GrainGradient, Metaballs, GemSmoke, Warp, Water } from "@paper-design/shaders-react";
 
 export function dummyGpuCheck() { return navigator.gpu; }
 export default function ForgeCanvas() {
@@ -46,11 +46,16 @@ export default function ForgeCanvas() {
   }, [state.layers, state.values.layerPropertiesStore, state.mediaAssets, state.canvas.size.width, state.canvas.size.height]);
 
   const shaderLayers = state.layers.filter(l => l.visible && store[l.id]?.type === "shader");
+  const imageShaderLayers = state.layers.filter(l => {
+    if (!l.visible) return false;
+    const type = store[l.id]?.type || "image";
+    return type === "image" && store[l.id]?.imageShaderFilter && store[l.id]?.imageShaderFilter !== "none";
+  });
 
   const shaderLoopRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
-    const hasLiveShader = shaderLayers.some(layer => !store[layer.id]?.shaderPaused);
+    const hasLiveShader = shaderLayers.some(layer => !store[layer.id]?.shaderPaused) || imageShaderLayers.some(layer => !store[layer.id]?.shaderPaused);
     
     if (hasLiveShader) {
       const loop = () => {
@@ -341,6 +346,39 @@ export default function ForgeCanvas() {
                   getColor(props.shaderColor4, "#ffff00")
                 ]}
                 image={props.shaderWarpImage && state.mediaAssets[0] ? state.mediaAssets[0].dataUrl : undefined}
+                layerProps={props}
+              />
+            </div>
+          );
+        })}
+
+        {imageShaderLayers.map((layer) => {
+          const props = store[layer.id] || {};
+          const asset = state.mediaAssets.find(a => a.layerId === layer.id || a.id === layer.id);
+          
+          let bounds = null;
+          if (currentRecipeRef.current && asset) {
+             const image = currentRecipeRef.current.layers.find(l => l.id === layer.id)?.params?.image;
+             if (image) {
+                bounds = getImageLayerBounds(currentRecipeRef.current.width, currentRecipeRef.current.height, image, props);
+             }
+          }
+
+          if (!asset || !bounds) return null;
+          
+          return (
+            <div key={`imgshader-${layer.id}`} id={`shader-${layer.id}`} style={{ width: bounds.width, height: bounds.height, position: 'absolute', top: 0, left: 0 }}>
+              <ShaderRenderer 
+                type={props.imageShaderFilter}
+                speed={props.shaderPaused ? 0 : 1}
+                colors={[
+                  getColor(props.shaderColor1, "#ff0000"),
+                  getColor(props.shaderColor2, "#00ff00"),
+                  getColor(props.shaderColor3, "#0000ff"),
+                  getColor(props.shaderColor4, "#ffff00")
+                ]}
+                image={asset.dataUrl}
+                layerProps={props}
               />
             </div>
           );
@@ -442,12 +480,12 @@ export function createRecipeFromState(state: any, store: Record<string, any>, im
   };
 }
 
-export function ShaderRenderer({ type, colors, image, speed = 1 }: { type: string, colors: string[], image?: string, speed?: number }) {
+export function ShaderRenderer({ type, colors, image, speed = 1, layerProps = {} }: { type: string, colors: string[], image?: string, speed?: number, layerProps?: any }) {
   const commonProps = { style: { width: '100%', height: '100%' } as React.CSSProperties, speed };
   
   switch (type) {
     case "LiquidMetal":
-      return <LiquidMetal {...commonProps} colorBack={colors[0]} colorTint={colors[1]} image={image} />;
+      return <LiquidMetal {...commonProps} colorBack={colors[0]} colorTint={colors[1]} image={image} distortion={layerProps.liquidDistortion} contour={layerProps.liquidContour} />;
     case "Metaballs":
       return <Metaballs {...commonProps} colors={colors.slice(0, 3)} colorBack={colors[3]} />;
     case "GodRays":
@@ -457,11 +495,13 @@ export function ShaderRenderer({ type, colors, image, speed = 1 }: { type: strin
     case "GrainGradient":
       return <GrainGradient {...commonProps} colors={colors} colorBack={colors[0]} />;
     case "GemSmoke":
-      return <GemSmoke {...commonProps} colors={colors} colorBack={colors[0]} image={image} />;
+      return <GemSmoke {...commonProps} colors={colors} colorBack={colors[0]} image={image} innerGlow={layerProps.smokeInnerGlow} outerGlow={layerProps.smokeOuterGlow} />;
     case "Warp":
-      return <Warp {...commonProps} colors={colors} />;
+      return <Warp {...commonProps} colors={colors} rotation={layerProps.warpRotation} softness={layerProps.warpSoftness} />;
+    case "Water":
+      return <Water {...commonProps} colorBack={colors[0]} colorHighlight={colors[1]} image={image} highlights={layerProps.waterHighlights} layering={layerProps.waterLayering} />;
     case "MeshGradient":
     default:
-      return <MeshGradient {...commonProps} colors={colors} />;
+      return <MeshGradient {...commonProps} colors={colors} distortion={layerProps.meshDistortion} swirl={layerProps.meshSwirl} />;
   }
 }

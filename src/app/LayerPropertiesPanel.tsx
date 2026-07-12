@@ -2,6 +2,57 @@ import * as React from "react";
 import { useToolcraft } from "@/toolcraft/runtime/react";
 import { Slider, Color, Select, Checkbox, ControlFieldLabel } from "@/toolcraft/ui";
 
+function ShaderFineTuners({ props, updateProp, isFilter = false }: { props: any, updateProp: (key: string, val: any) => void, isFilter?: boolean }) {
+  const type = isFilter ? props.imageShaderFilter : (props.shaderType || "MeshGradient");
+  return (
+    <>
+      <Checkbox
+        name="Pause Animation"
+        checked={props.shaderPaused || false}
+        onCheckedChange={(val) => updateProp("shaderPaused", val)}
+      />
+
+      {type === "LiquidMetal" && (
+        <>
+          <Slider name="Distortion" value={props.liquidDistortion ?? 1.5} min={0} max={5} step={0.1} onValueChange={(val) => updateProp("liquidDistortion", val)} />
+          <Slider name="Contour" value={props.liquidContour ?? 1.0} min={0.1} max={5} step={0.1} onValueChange={(val) => updateProp("liquidContour", val)} />
+        </>
+      )}
+      {type === "Warp" && (
+        <>
+          <Slider name="Rotation" value={props.warpRotation ?? 0} min={0} max={360} step={1} onValueChange={(val) => updateProp("warpRotation", val)} />
+          <Slider name="Softness" value={props.warpSoftness ?? 0.5} min={0} max={1} step={0.05} onValueChange={(val) => updateProp("warpSoftness", val)} />
+        </>
+      )}
+      {type === "Water" && (
+        <>
+          <Slider name="Highlights" value={props.waterHighlights ?? 1.0} min={0} max={3} step={0.1} onValueChange={(val) => updateProp("waterHighlights", val)} />
+          <Slider name="Layering" value={props.waterLayering ?? 1.0} min={0} max={5} step={0.1} onValueChange={(val) => updateProp("waterLayering", val)} />
+        </>
+      )}
+      {type === "GemSmoke" && (
+        <>
+          <Slider name="Inner Glow" value={props.smokeInnerGlow ?? 1.0} min={0} max={5} step={0.1} onValueChange={(val) => updateProp("smokeInnerGlow", val)} />
+          <Slider name="Outer Glow" value={props.smokeOuterGlow ?? 1.0} min={0} max={5} step={0.1} onValueChange={(val) => updateProp("smokeOuterGlow", val)} />
+        </>
+      )}
+      {type === "MeshGradient" && (
+        <>
+          <Slider name="Distortion" value={props.meshDistortion ?? 1.0} min={0} max={5} step={0.1} onValueChange={(val) => updateProp("meshDistortion", val)} />
+          <Slider name="Swirl" value={props.meshSwirl ?? 1.0} min={0} max={5} step={0.1} onValueChange={(val) => updateProp("meshSwirl", val)} />
+        </>
+      )}
+
+      <div className="grid grid-cols-2 gap-2 mt-2">
+         <Color name="Color 1" hex={props.shaderColor1?.hex || "#ff0000"} onValueChange={(val) => updateProp("shaderColor1", val)} />
+         <Color name="Color 2" hex={props.shaderColor2?.hex || "#00ff00"} onValueChange={(val) => updateProp("shaderColor2", val)} />
+         <Color name="Color 3" hex={props.shaderColor3?.hex || "#0000ff"} onValueChange={(val) => updateProp("shaderColor3", val)} />
+         <Color name="Color 4" hex={props.shaderColor4?.hex || "#ffff00"} onValueChange={(val) => updateProp("shaderColor4", val)} />
+      </div>
+    </>
+  );
+}
+
 export function LayerPropertiesPanel() {
   const { state, dispatch } = useToolcraft();
   
@@ -40,7 +91,7 @@ export function LayerPropertiesPanel() {
         <>
           <Select
             name="Shader Type"
-            options={[ { label: "Mesh Gradient", value: "MeshGradient" }, { label: "Liquid Metal", value: "LiquidMetal" }, { label: "Metaballs", value: "Metaballs" }, { label: "God Rays", value: "GodRays" }, { label: "Neuro Noise", value: "NeuroNoise" }, { label: "Grain Gradient", value: "GrainGradient" }, { label: "Gem Smoke", value: "GemSmoke" }, { label: "Warp", value: "Warp" } ]}
+            options={[ { label: "Mesh Gradient", value: "MeshGradient" }, { label: "Liquid Metal", value: "LiquidMetal" }, { label: "Metaballs", value: "Metaballs" }, { label: "God Rays", value: "GodRays" }, { label: "Neuro Noise", value: "NeuroNoise" }, { label: "Grain Gradient", value: "GrainGradient" }, { label: "Gem Smoke", value: "GemSmoke" }, { label: "Warp", value: "Warp" }, { label: "Water", value: "Water" } ]}
             value={props.shaderType || "MeshGradient"}
             onValueChange={(val) => updateProp("shaderType", val)}
           />
@@ -49,17 +100,7 @@ export function LayerPropertiesPanel() {
             checked={props.shaderWarpImage || false}
             onCheckedChange={(val) => updateProp("shaderWarpImage", val)}
           />
-          <Checkbox
-            name="Pause Animation"
-            checked={props.shaderPaused || false}
-            onCheckedChange={(val) => updateProp("shaderPaused", val)}
-          />
-          <div className="grid grid-cols-2 gap-2 mt-2">
-             <Color name="Color 1" hex={props.shaderColor1?.hex || "#ff0000"} onValueChange={(val) => updateProp("shaderColor1", val)} />
-             <Color name="Color 2" hex={props.shaderColor2?.hex || "#00ff00"} onValueChange={(val) => updateProp("shaderColor2", val)} />
-             <Color name="Color 3" hex={props.shaderColor3?.hex || "#0000ff"} onValueChange={(val) => updateProp("shaderColor3", val)} />
-             <Color name="Color 4" hex={props.shaderColor4?.hex || "#ffff00"} onValueChange={(val) => updateProp("shaderColor4", val)} />
-          </div>
+          <ShaderFineTuners props={props} updateProp={updateProp} isFilter={false} />
         </>
       )}
 
@@ -116,6 +157,20 @@ export function LayerPropertiesPanel() {
 
       {props.type === "image" && (
         <>
+          <Select
+             name="Shader Filter"
+             options={[ { label: "None", value: "none" }, { label: "Liquid Metal", value: "LiquidMetal" }, { label: "Warp", value: "Warp" }, { label: "Water", value: "Water" }, { label: "Gem Smoke", value: "GemSmoke" }, { label: "Mesh Gradient", value: "MeshGradient" } ]}
+             value={props.imageShaderFilter || "none"}
+             onValueChange={(val) => updateProp("imageShaderFilter", val)}
+          />
+          {props.imageShaderFilter && props.imageShaderFilter !== "none" && (
+             <div className="p-3 border border-neutral-800 rounded bg-neutral-900/50 flex flex-col gap-3">
+               <div className="text-xs uppercase text-neutral-500 font-semibold mb-1">Filter Settings</div>
+               <Checkbox name="Preserve Transparency" checked={props.preserveTransparency ?? true} onCheckedChange={(val) => updateProp("preserveTransparency", val)} />
+               <ShaderFineTuners props={props} updateProp={updateProp} isFilter={true} />
+             </div>
+          )}
+
           <Slider name="Scale" value={props.scale ?? 1.0} min={0.1} max={5.0} step={0.01} onValueChange={(val) => updateProp("scale", val)} />
           <Slider name="X Position" value={props.transformX ?? 0} min={-2000} max={2000} step={1} onValueChange={(val) => updateProp("transformX", val)} />
           <Slider name="Y Position" value={props.transformY ?? 0} min={-2000} max={2000} step={1} onValueChange={(val) => updateProp("transformY", val)} />
