@@ -127,10 +127,13 @@ export default function ForgeCanvas() {
       // Update store state natively
       dispatch({
         type: "controls.setValue",
-        values: {
-          [`${layerId}.transformX`]: existingX + dx,
-          [`${layerId}.transformY`]: existingY + dy,
-        }
+        target: `${layerId}.transformX`,
+        value: existingX + dx,
+      });
+      dispatch({
+        type: "controls.setValue",
+        target: `${layerId}.transformY`,
+        value: existingY + dy,
       });
     } else {
       // Just a click, re-render to remove overrides
