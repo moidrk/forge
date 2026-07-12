@@ -302,6 +302,7 @@ export default function ForgeCanvas() {
             <div key={layer.id} id={`shader-${layer.id}`} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
               <ShaderRenderer 
                 type={props.shaderType ?? "MeshGradient"}
+                speed={props.shaderPaused ? 0 : 1}
                 colors={[
                   getColor(props.shaderColor1, "#ff0000"),
                   getColor(props.shaderColor2, "#00ff00"),
@@ -410,8 +411,8 @@ export function createRecipeFromState(state: any, store: Record<string, any>, im
   };
 }
 
-export function ShaderRenderer({ type, colors, image }: { type: string, colors: string[], image?: string }) {
-  const commonProps = { style: { width: '100%', height: '100%' } as React.CSSProperties };
+export function ShaderRenderer({ type, colors, image, speed = 1 }: { type: string, colors: string[], image?: string, speed?: number }) {
+  const commonProps = { style: { width: '100%', height: '100%' } as React.CSSProperties, speed };
   
   switch (type) {
     case "LiquidMetal":

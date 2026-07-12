@@ -49,6 +49,11 @@ export function LayerPropertiesPanel() {
             checked={props.shaderWarpImage || false}
             onCheckedChange={(val) => updateProp("shaderWarpImage", val)}
           />
+          <Checkbox
+            name="Pause Animation"
+            checked={props.shaderPaused || false}
+            onCheckedChange={(val) => updateProp("shaderPaused", val)}
+          />
           <div className="grid grid-cols-2 gap-2 mt-2">
              <Color name="Color 1" hex={props.shaderColor1?.hex || "#ff0000"} onValueChange={(val) => updateProp("shaderColor1", val)} />
              <Color name="Color 2" hex={props.shaderColor2?.hex || "#00ff00"} onValueChange={(val) => updateProp("shaderColor2", val)} />
