@@ -12,10 +12,71 @@ export function ProductTour() {
 
     // A small delay to ensure the DOM is fully painted (panels are rendered)
     const timeout = setTimeout(() => {
+      let timer: number;
+      let startTime: number;
+      let bar: HTMLDivElement | null = null;
+
       const driverObj = driver({
         showProgress: true,
         allowClose: false,
         animate: true,
+        showButtons: ['next', 'previous'],
+        onPopoverRender: (popover) => {
+          cancelAnimationFrame(timer);
+
+          // Inject Skip Button
+          let skipBtn = popover.wrapper.querySelector('.custom-skip-btn') as HTMLButtonElement | null;
+          if (!skipBtn) {
+            skipBtn = document.createElement('button');
+            skipBtn.className = "custom-skip-btn";
+            skipBtn.innerText = "Skip Tour";
+            skipBtn.style.cssText = "position: absolute; top: 12px; right: 12px; font-size: 12px; color: #888; background: transparent; border: none; cursor: pointer; transition: color 0.2s;";
+            skipBtn.onmouseover = () => skipBtn!.style.color = "#fff";
+            skipBtn.onmouseleave = () => skipBtn!.style.color = "#888";
+            skipBtn.onclick = () => {
+              localStorage.setItem("forge_tour_completed", "true");
+              driverObj.destroy();
+            };
+            popover.wrapper.appendChild(skipBtn);
+          }
+
+          // Inject Progress Bar
+          let progressContainer = popover.wrapper.querySelector('.custom-progress-bar-container') as HTMLDivElement | null;
+          if (!progressContainer) {
+            progressContainer = document.createElement('div');
+            progressContainer.className = "custom-progress-bar-container";
+            progressContainer.style.cssText = "width: 100%; height: 4px; background: rgba(255,255,255,0.1); position: absolute; bottom: 0; left: 0; border-radius: 0 0 5px 5px; overflow: hidden;";
+            
+            bar = document.createElement('div');
+            bar.style.cssText = "width: 0%; height: 100%; background: #007bff; transition: none;";
+            progressContainer.appendChild(bar);
+            
+            popover.wrapper.appendChild(progressContainer);
+          } else {
+            bar = progressContainer.firstChild as HTMLDivElement;
+          }
+
+          startTime = Date.now();
+          const duration = 5000;
+
+          const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const percent = Math.min((elapsed / duration) * 100, 100);
+            if (bar) bar.style.width = `${percent}%`;
+
+            if (elapsed >= duration) {
+              if (driverObj.hasNextStep()) {
+                driverObj.moveNext();
+              } else {
+                localStorage.setItem("forge_tour_completed", "true");
+                driverObj.destroy();
+              }
+            } else {
+              timer = requestAnimationFrame(animate);
+            }
+          };
+          timer = requestAnimationFrame(animate);
+        },
         steps: [
           {
             popover: {
@@ -69,6 +130,7 @@ export function ProductTour() {
           }
         ],
         onDestroyStarted: () => {
+          cancelAnimationFrame(timer);
           localStorage.setItem("forge_tour_completed", "true");
           driverObj.destroy();
         }
