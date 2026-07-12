@@ -76,6 +76,7 @@ export default function ForgeCanvas() {
 
     // Support for scaling and moving
     if (target.dataset.action === "scale" && state.selectedLayerId) {
+      e.stopPropagation();
       const selectedProps = store[state.selectedLayerId] || {};
       const image = currentRecipeRef.current.layers.find(l => l.id === state.selectedLayerId)?.params?.image;
       if (image) {
@@ -95,6 +96,7 @@ export default function ForgeCanvas() {
     }
 
     if (target.dataset.action === "move" && state.selectedLayerId) {
+      e.stopPropagation();
       dragStateRef.current = { 
         layerId: state.selectedLayerId, 
         mode: "move", 
@@ -120,6 +122,7 @@ export default function ForgeCanvas() {
     }
 
     if (hitLayerId) {
+       e.stopPropagation();
        dragStateRef.current = { layerId: hitLayerId, mode: "move", startX: x, startY: y, currentX: x, currentY: y };
        if (hitLayerId !== state.selectedLayerId) {
          dispatch({ layerId: hitLayerId, type: "layers.select" });
@@ -139,6 +142,8 @@ export default function ForgeCanvas() {
       handlePointerUp(e);
       return;
     }
+
+    e.stopPropagation(); // Prevent canvas pan while dragging!
 
     const { x, y } = getLogicCoords(e);
     dragStateRef.current.currentX = x;
