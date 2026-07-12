@@ -32,30 +32,40 @@ export function AppHome(): React.JSX.Element {
       const layerId = `${type}-${Date.now()}`;
 
       let parentGroupId: string | undefined = undefined;
+      let selectedLayer: any = null;
+      
       if (context.state.selectedLayerId) {
-        const selectedLayer = context.state.layers.find((l: any) => l.id === context.state.selectedLayerId);
+        selectedLayer = context.state.layers.find((l: any) => l.id === context.state.selectedLayerId);
         if (selectedLayer) {
           parentGroupId = selectedLayer.kind === "group" ? selectedLayer.id : selectedLayer.parentGroupId;
         }
       }
 
-      // Add the layer to the left panel
-      context.dispatch({
-        type: "layers.add",
-        layer: {
-          id: layerId,
-          name: name,
-          kind: "layer",
-          visible: true,
-          parentGroupId
-        },
-        insertIndex: 0
-      });
+      let targetLayerId = layerId;
+
+      if (selectedLayer && selectedLayer.kind !== "group") {
+        // Convert the currently selected active layer into this effect
+        targetLayerId = selectedLayer.id;
+        context.dispatch({ type: "layers.rename", layerId: targetLayerId, name });
+      } else {
+        // No active layer (or a group is selected), so spawn a new layer
+        context.dispatch({
+          type: "layers.add",
+          layer: {
+            id: targetLayerId,
+            name: name,
+            kind: "layer",
+            visible: true,
+            parentGroupId
+          },
+          insertIndex: 0
+        });
+      }
 
       // Initialize its properties in the store
       const storeStr = context.state.values.layerPropertiesStore || "{}";
       const store = JSON.parse(storeStr);
-      store[layerId] = { type };
+      store[targetLayerId] = { type };
       
       context.dispatch({
         type: "controls.setValue",
@@ -63,9 +73,9 @@ export function AppHome(): React.JSX.Element {
         value: JSON.stringify(store)
       });
       
-      // Select the new layer
+      // Ensure it stays selected
       setTimeout(() => {
-        context.dispatch({ type: "layers.select", layerId });
+        context.dispatch({ type: "layers.select", layerId: targetLayerId });
       }, 10);
       
     } else if (actionVal === "shuffle") {
