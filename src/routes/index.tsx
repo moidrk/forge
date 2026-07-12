@@ -13,6 +13,8 @@ export function AppHome(): React.JSX.Element {
       const blendModes = ["source-over", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "luminosity"];
       const styles = ["asymmetrical", "symmetrical"];
       const halftoneStyles = ["dots", "lines", "crosshatch"];
+      const shaderTypes = ["MeshGradient", "LiquidMetal", "Metaballs", "GodRays", "NeuroNoise", "GrainGradient", "GemSmoke", "Warp"];
+      const techStyles = ["cyberpunk", "minimalist", "blueprint"];
 
       const newValues: Record<string, any> = {
         seed: randomInt(0, 1000000),
@@ -22,6 +24,7 @@ export function AppHome(): React.JSX.Element {
         imageBlendMode: blendModes[randomInt(0, blendModes.length - 1)],
         imageOpacity: randomRange(0.3, 1),
         layoutStyle: styles[randomInt(0, 1)],
+        shaderType: shaderTypes[randomInt(0, shaderTypes.length - 1)],
         shaderColor1: { hex: randomHexColor() },
         shaderColor2: { hex: randomHexColor() },
         shaderColor3: { hex: randomHexColor() },
@@ -35,12 +38,17 @@ export function AppHome(): React.JSX.Element {
         halftoneStyle: halftoneStyles[randomInt(0, 2)],
         paperColor: { hex: randomHexColor() },
         grainIntensity: randomRange(0.01, 0.3),
+        scratchesEnabled: Math.random() > 0.5,
+        scratchIntensity: randomRange(0.1, 1),
+        techStyle: techStyles[randomInt(0, techStyles.length - 1)],
         techColor: { hex: randomHexColor() },
         techDensity: randomRange(0.1, 0.8),
         cgHue: randomRange(-180, 180),
         cgSat: randomRange(0, 2),
         cgCon: randomRange(0.5, 1.5),
+        cgVignette: randomRange(0, 0.8),
         glitchIntensity: randomRange(0, 1),
+        glitchRGB: Math.random() > 0.5,
       };
 
       for (const [key, value] of Object.entries(newValues)) {

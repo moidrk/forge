@@ -77,8 +77,12 @@ export const appSchema = defineToolcraft({
               options: [
                 { label: "Mesh Gradient", value: "MeshGradient" },
                 { label: "Liquid Metal", value: "LiquidMetal" },
-                { label: "Fluid Glow", value: "FluidGlow" },
-                { label: "Cosmic", value: "Cosmic" }
+                { label: "Metaballs", value: "Metaballs" },
+                { label: "God Rays", value: "GodRays" },
+                { label: "Neuro Noise", value: "NeuroNoise" },
+                { label: "Grain Gradient", value: "GrainGradient" },
+                { label: "Gem Smoke", value: "GemSmoke" },
+                { label: "Warp", value: "Warp" }
               ],
               defaultValue: "MeshGradient",
               visibleWhen: { target: "shaderEnabled", equals: true }
@@ -98,6 +102,8 @@ export const appSchema = defineToolcraft({
             paperEnabled: { target: "paperEnabled", type: "checkbox", label: "Enable Paper Grain", defaultValue: true },
             paperColor: { target: "paperColor", type: "color", label: "Paper Tint", defaultValue: "#f4f0ec", visibleWhen: { target: "paperEnabled", equals: true } },
             grainIntensity: { target: "grainIntensity", type: "slider", label: "Grain Intensity", min: 0, max: 1, step: 0.01, defaultValue: 0.1, visibleWhen: { target: "paperEnabled", equals: true } },
+            scratchesEnabled: { target: "scratchesEnabled", type: "checkbox", label: "Enable Scratches", defaultValue: false, visibleWhen: { target: "paperEnabled", equals: true } },
+            scratchIntensity: { target: "scratchIntensity", type: "slider", label: "Scratch Intensity", min: 0, max: 1, step: 0.05, defaultValue: 0.5, visibleWhen: { target: "scratchesEnabled", equals: true } },
           }
         },
         {
@@ -125,6 +131,18 @@ export const appSchema = defineToolcraft({
           title: "Tech Overlay",
           controls: {
             techOverlayEnabled: { target: "techOverlayEnabled", type: "checkbox", label: "Enable Tech UI", defaultValue: true },
+            techStyle: {
+              target: "techStyle",
+              type: "select",
+              label: "Style",
+              options: [
+                { label: "Cyberpunk HUD", value: "cyberpunk" },
+                { label: "Minimalist Print", value: "minimalist" },
+                { label: "Blueprint", value: "blueprint" }
+              ],
+              defaultValue: "cyberpunk",
+              visibleWhen: { target: "techOverlayEnabled", equals: true }
+            },
             techColor: { target: "techColor", type: "color", label: "Tech Color", defaultValue: "#000000", visibleWhen: { target: "techOverlayEnabled", equals: true } },
             techDensity: { target: "techDensity", type: "slider", label: "Density", min: 0, max: 1, step: 0.05, defaultValue: 0.5, visibleWhen: { target: "techOverlayEnabled", equals: true } },
             showBarcodes: { target: "showBarcodes", type: "checkbox", label: "Show Barcodes", defaultValue: true, visibleWhen: { target: "techOverlayEnabled", equals: true } },
@@ -137,9 +155,11 @@ export const appSchema = defineToolcraft({
             cgHue: { target: "cgHue", type: "slider", label: "Hue", min: -180, max: 180, step: 1, defaultValue: 0, visibleWhen: { target: "colorGradeEnabled", equals: true } },
             cgSat: { target: "cgSat", type: "slider", label: "Saturation", min: 0, max: 3, step: 0.1, defaultValue: 1.2, visibleWhen: { target: "colorGradeEnabled", equals: true } },
             cgCon: { target: "cgCon", type: "slider", label: "Contrast", min: 0, max: 3, step: 0.1, defaultValue: 1.1, visibleWhen: { target: "colorGradeEnabled", equals: true } },
+            cgVignette: { target: "cgVignette", type: "slider", label: "Vignette", min: 0, max: 1, step: 0.05, defaultValue: 0, visibleWhen: { target: "colorGradeEnabled", equals: true } },
             
             glitchEnabled: { target: "glitchEnabled", type: "checkbox", label: "Enable Glitch", defaultValue: false },
             glitchIntensity: { target: "glitchIntensity", type: "slider", label: "Intensity", min: 0, max: 1, step: 0.05, defaultValue: 0.5, visibleWhen: { target: "glitchEnabled", equals: true } },
+            glitchRGB: { target: "glitchRGB", type: "checkbox", label: "RGB Split (VHS)", defaultValue: false, visibleWhen: { target: "glitchEnabled", equals: true } },
           }
         },
         {

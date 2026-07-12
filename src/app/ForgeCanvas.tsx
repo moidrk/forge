@@ -2,19 +2,24 @@ import * as React from "react";
 import { useToolcraft } from "@/toolcraft/runtime/react";
 import { generatePreview } from "@/lib/generation/engine";
 import { DesignRecipe } from "@/lib/generation/types";
-import { MeshGradient } from "@paper-design/shaders-react";
+import { MeshGradient, GodRays, NeuroNoise, LiquidMetal, GrainGradient, Metaballs, GemSmoke, Warp } from "@paper-design/shaders-react";
 
 export function ForgeCanvas() {
   const { state } = useToolcraft();
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
+  const values = state.values as Record<string, any>;
+  const getColor = (val: any, defaultColor: string) => {
+    if (!val) return defaultColor;
+    if (typeof val === 'string') return val;
+    return val.hex || defaultColor;
+  };
+
   React.useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
     
     const webglCanvas = containerRef.current.querySelector('canvas');
-
-    const values = state.values as Record<string, any>;
     
     // Extract uploaded images from media assets
     const imagesPromises = state.mediaAssets
@@ -28,12 +33,6 @@ export function ForgeCanvas() {
         });
       });
 
-    const getColor = (val: any, defaultColor: string) => {
-      if (!val) return defaultColor;
-      if (typeof val === 'string') return val;
-      return val.hex || defaultColor;
-    };
-
     Promise.all(imagesPromises).then((images) => {
       const recipe = createRecipeFromState(state, images);
       generatePreview(recipe, canvasRef.current!, webglCanvas);
@@ -43,7 +42,17 @@ export function ForgeCanvas() {
   return (
     <div className="flex h-full w-full items-center justify-center p-8 relative">
       <div id="forge-shader-container" ref={containerRef} style={{ position: 'absolute', top: -9999, left: -9999, width: state.canvas.size.width, height: state.canvas.size.height, pointerEvents: 'none' }}>
-        <MeshGradient style={{ width: '100%', height: '100%' }} />
+        {values.shaderEnabled && (
+          <ShaderRenderer 
+            type={values.shaderType ?? "MeshGradient"}
+            colors={[
+              getColor(values.shaderColor1, "#ff0000"),
+              getColor(values.shaderColor2, "#00ff00"),
+              getColor(values.shaderColor3, "#0000ff"),
+              getColor(values.shaderColor4, "#ffff00")
+            ]}
+          />
+        )}
       </div>
       <canvas
         ref={canvasRef}
@@ -119,6 +128,7 @@ export function createRecipeFromState(state: any, images: HTMLImageElement[]): D
           hue: values.cgHue ?? 0,
           saturation: values.cgSat ?? 1.2,
           contrast: values.cgCon ?? 1.1,
+          vignette: values.cgVignette ?? 0,
         },
       },
       paper: {
@@ -128,11 +138,14 @@ export function createRecipeFromState(state: any, images: HTMLImageElement[]): D
           grainIntensity: values.grainIntensity ?? 0.1,
           texture: "grain",
           grainSize: 1,
+          scratchesEnabled: values.scratchesEnabled ?? false,
+          scratchIntensity: values.scratchIntensity ?? 0.5,
         },
       },
       techOverlay: {
         enabled: values.techOverlayEnabled ?? true,
         params: {
+          style: values.techStyle ?? "cyberpunk",
           color: getColor(values.techColor, "#000000"),
           density: values.techDensity ?? 0.5,
           showBarcodes: values.showBarcodes ?? true,
@@ -142,8 +155,33 @@ export function createRecipeFromState(state: any, images: HTMLImageElement[]): D
         enabled: values.glitchEnabled ?? false,
         params: {
           intensity: values.glitchIntensity ?? 0.5,
+          glitchRGB: values.glitchRGB ?? false,
         },
       },
     },
   };
+}
+
+export function ShaderRenderer({ type, colors }: { type: string, colors: string[] }) {
+  const commonProps = { style: { width: '100%', height: '100%' } as React.CSSProperties };
+  
+  switch (type) {
+    case "LiquidMetal":
+      return <LiquidMetal {...commonProps} colorBack={colors[0]} colorTint={colors[1]} />;
+    case "Metaballs":
+      return <Metaballs {...commonProps} colors={colors.slice(0, 3)} colorBack={colors[3]} />;
+    case "GodRays":
+      return <GodRays {...commonProps} colorBack={colors[0]} colorBloom={colors[1]} colors={colors.slice(2)} />;
+    case "NeuroNoise":
+      return <NeuroNoise {...commonProps} colorFront={colors[0]} colorMid={colors[1]} colorBack={colors[2]} />;
+    case "GrainGradient":
+      return <GrainGradient {...commonProps} colors={colors} colorBack={colors[0]} />;
+    case "GemSmoke":
+      return <GemSmoke {...commonProps} colors={colors} colorBack={colors[0]} />;
+    case "Warp":
+      return <Warp {...commonProps} colors={colors} />;
+    case "MeshGradient":
+    default:
+      return <MeshGradient {...commonProps} colors={colors} />;
+  }
 }

@@ -31,14 +31,25 @@ export function renderGlitchLayer(ctx: CanvasRenderingContext2D, width: number, 
       
       // Draw the slice back with an offset
       ctx.drawImage(offscreen, 0, sliceY, width, sliceH, offsetX, sliceY, width, sliceH);
-      
-      // Add RGB split effect occasionally
-      if (rng.chance(0.3)) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'screen';
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-        ctx.fillRect(offsetX, sliceY, width, sliceH);
-        ctx.restore();
+    }
+
+    if (params.glitchRGB) {
+      const finalData = ctx.getImageData(0, 0, width, height);
+      const d = finalData.data;
+      const shift = Math.floor(15 * intensity);
+      if (shift > 0) {
+        // Create a copy to read from so we don't smear
+        const copy = new Uint8ClampedArray(d);
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            // Shift Red right
+            if (x >= shift) d[i] = copy[i - shift * 4];
+            // Shift Blue left
+            if (x < width - shift) d[i + 2] = copy[i + shift * 4 + 2];
+          }
+        }
+        ctx.putImageData(finalData, 0, 0);
       }
     }
   } catch (e) {

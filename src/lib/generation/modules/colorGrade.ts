@@ -19,6 +19,16 @@ export function renderColorGradeLayer(ctx: CanvasRenderingContext2D, width: numb
     ctx.fillRect(0, 0, width, height);
   }
   
+  const vignette = params.vignette || 0;
+  if (vignette > 0) {
+    ctx.globalCompositeOperation = 'multiply';
+    const grad = ctx.createRadialGradient(width/2, height/2, width*0.1, width/2, height/2, width*0.7);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, `rgba(0,0,0,${vignette})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  }
+  
   ctx.restore();
 }
 
@@ -37,6 +47,20 @@ export function generateColorGradeLayerSVG(width: number, height: number, rng: R
     const blendMode = contrast > 1.0 ? 'overlay' : 'screen';
     const fill = contrast > 1.0 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
     svg += `<rect width="${width}" height="${height}" fill="${fill}" style="mix-blend-mode: ${blendMode};" />\n`;
+  }
+
+  const vignette = params.vignette || 0;
+  if (vignette > 0) {
+    const vGradId = `vignette_${rng.rangeInt(0, 1000)}`;
+    svg += `
+      <defs>
+        <radialGradient id="${vGradId}" cx="50%" cy="50%" r="70%">
+          <stop offset="50%" stop-color="rgba(0,0,0,0)" />
+          <stop offset="100%" stop-color="rgba(0,0,0,${vignette})" />
+        </radialGradient>
+      </defs>
+      <rect width="${width}" height="${height}" fill="url(#${vGradId})" style="mix-blend-mode: multiply;" />
+    `;
   }
 
   return svg;

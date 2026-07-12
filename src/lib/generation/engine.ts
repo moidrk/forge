@@ -35,52 +35,57 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement,
     }
   }
 
-  // Initialize RNG with the recipe seed
-  const rng = new RNG(recipe.seed);
-
   // Define strictly ordered rendering pipeline
   // 1. Base / Background
   if (recipe.layers.base?.enabled) {
-    renderBaseLayer(ctx, width, height, rng, recipe.layers.base.params);
+    const baseRng = new RNG(recipe.seed + 1);
+    renderBaseLayer(ctx, width, height, baseRng, recipe.layers.base.params);
   }
 
   // 2. Image Layout Grid Collage
   if (recipe.layers.imageLayout?.enabled) {
-    renderImageLayoutLayer(ctx, width, height, rng, recipe.layers.imageLayout.params);
+    const imageRng = new RNG(recipe.seed + 2);
+    renderImageLayoutLayer(ctx, width, height, imageRng, recipe.layers.imageLayout.params);
   }
 
   // 3. Halftone
   if (recipe.layers.halftone?.enabled) {
+    const halftoneRng = new RNG(recipe.seed + 3);
     ctx.globalCompositeOperation = 'overlay';
-    renderHalftoneLayer(ctx, width, height, rng, recipe.layers.halftone.params);
+    renderHalftoneLayer(ctx, width, height, halftoneRng, recipe.layers.halftone.params);
     ctx.globalCompositeOperation = 'source-over';
   }
 
   // 4. Color Grading
   if (recipe.layers.colorGrade?.enabled) {
-    renderColorGradeLayer(ctx, width, height, rng, recipe.layers.colorGrade.params);
+    const cgRng = new RNG(recipe.seed + 4);
+    renderColorGradeLayer(ctx, width, height, cgRng, recipe.layers.colorGrade.params);
   }
 
   // 5. Paper Effects
   if (recipe.layers.paper?.enabled) {
+    const paperRng = new RNG(recipe.seed + 5);
     ctx.globalCompositeOperation = 'multiply';
-    renderPaperLayer(ctx, width, height, rng, recipe.layers.paper.params);
+    renderPaperLayer(ctx, width, height, paperRng, recipe.layers.paper.params);
     ctx.globalCompositeOperation = 'source-over';
   }
 
   // 6. Tech Overlays
   if (recipe.layers.techOverlay?.enabled) {
-    renderTechOverlayLayer(ctx, width, height, rng, recipe.layers.techOverlay.params);
+    const techRng = new RNG(recipe.seed + 6);
+    renderTechOverlayLayer(ctx, width, height, techRng, recipe.layers.techOverlay.params);
   }
 
   // 7. Typography
   if (recipe.layers.typography?.enabled) {
-    renderTypographyLayer(ctx, width, height, rng, recipe.layers.typography.params);
+    const typoRng = new RNG(recipe.seed + 7);
+    renderTypographyLayer(ctx, width, height, typoRng, recipe.layers.typography.params);
   }
 
   // 8. Glitch / Post-processing
   if (recipe.layers.glitch?.enabled) {
-    renderGlitchLayer(ctx, width, height, rng, recipe.layers.glitch.params);
+    const glitchRng = new RNG(recipe.seed + 8);
+    renderGlitchLayer(ctx, width, height, glitchRng, recipe.layers.glitch.params);
   }
 
   ctx.restore();
@@ -88,7 +93,6 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement,
 
 export function generateSVG(recipe: DesignRecipe): string {
   const { width, height } = recipe;
-  const rng = new RNG(recipe.seed);
 
   let svgContent = '';
 
@@ -104,28 +108,28 @@ export function generateSVG(recipe: DesignRecipe): string {
     `;
   }
   if (recipe.layers.base?.enabled) {
-    svgContent += generateBaseLayerSVG(width, height, rng, recipe.layers.base.params);
+    svgContent += generateBaseLayerSVG(width, height, new RNG(recipe.seed + 1), recipe.layers.base.params);
   }
   if (recipe.layers.imageLayout?.enabled) {
-    svgContent += generateImageLayoutLayerSVG(width, height, rng, recipe.layers.imageLayout.params);
+    svgContent += generateImageLayoutLayerSVG(width, height, new RNG(recipe.seed + 2), recipe.layers.imageLayout.params);
   }
   if (recipe.layers.halftone?.enabled) {
-    svgContent += generateHalftoneLayerSVG(width, height, rng, recipe.layers.halftone.params);
+    svgContent += generateHalftoneLayerSVG(width, height, new RNG(recipe.seed + 3), recipe.layers.halftone.params);
   }
   if (recipe.layers.colorGrade?.enabled) {
-    svgContent += generateColorGradeLayerSVG(width, height, rng, recipe.layers.colorGrade.params);
+    svgContent += generateColorGradeLayerSVG(width, height, new RNG(recipe.seed + 4), recipe.layers.colorGrade.params);
   }
   if (recipe.layers.paper?.enabled) {
-    svgContent += generatePaperLayerSVG(width, height, rng, recipe.layers.paper.params);
+    svgContent += generatePaperLayerSVG(width, height, new RNG(recipe.seed + 5), recipe.layers.paper.params);
   }
   if (recipe.layers.techOverlay?.enabled) {
-    svgContent += generateTechOverlayLayerSVG(width, height, rng, recipe.layers.techOverlay.params);
+    svgContent += generateTechOverlayLayerSVG(width, height, new RNG(recipe.seed + 6), recipe.layers.techOverlay.params);
   }
   if (recipe.layers.typography?.enabled) {
-    svgContent += generateTypographyLayerSVG(width, height, rng, recipe.layers.typography.params);
+    svgContent += generateTypographyLayerSVG(width, height, new RNG(recipe.seed + 7), recipe.layers.typography.params);
   }
   if (recipe.layers.glitch?.enabled) {
-    svgContent += generateGlitchLayerSVG(width, height, rng, recipe.layers.glitch.params);
+    svgContent += generateGlitchLayerSVG(width, height, new RNG(recipe.seed + 8), recipe.layers.glitch.params);
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">

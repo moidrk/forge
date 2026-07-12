@@ -51,6 +51,58 @@ export function renderPaperLayer(ctx: CanvasRenderingContext2D, width: number, h
     }
     ctx.restore();
   }
+
+  // Scratches and Dust
+  if (params.scratchesEnabled) {
+    const scratchIntensity = params.scratchIntensity || 0.5;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1;
+    
+    // Draw scratches
+    const numScratches = Math.floor(scratchIntensity * 20);
+    ctx.beginPath();
+    for (let i = 0; i < numScratches; i++) {
+      const x = rng.range(0, width);
+      const y = rng.range(0, height);
+      const len = rng.range(10, 100);
+      const angle = rng.range(0, Math.PI * 2);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+    }
+    ctx.stroke();
+
+    // Draw dust
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.beginPath();
+    const numDust = Math.floor(scratchIntensity * 100);
+    for (let i = 0; i < numDust; i++) {
+      const x = rng.range(0, width);
+      const y = rng.range(0, height);
+      const r = rng.range(0.5, 2);
+      ctx.moveTo(x, y);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+    }
+    ctx.fill();
+    
+    // Draw some dark scratches
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.beginPath();
+    for (let i = 0; i < numScratches / 2; i++) {
+      const x = rng.range(0, width);
+      const y = rng.range(0, height);
+      const len = rng.range(5, 50);
+      const angle = rng.range(0, Math.PI * 2);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+    }
+    ctx.stroke();
+    
+    ctx.restore();
+  }
 }
 
 export function generatePaperLayerSVG(width: number, height: number, rng: RNG, params: Record<string, any>): string {
@@ -68,6 +120,41 @@ export function generatePaperLayerSVG(width: number, height: number, rng: RNG, p
     svg += `
       <rect width="${width}" height="${height}" filter="url(#noiseFilter)" opacity="${grainIntensity}" style="mix-blend-mode: overlay;" />
     `;
+  }
+
+  if (params.scratchesEnabled) {
+    const scratchIntensity = params.scratchIntensity || 0.5;
+    const numScratches = Math.floor(scratchIntensity * 20);
+    const numDust = Math.floor(scratchIntensity * 100);
+
+    svg += `<g stroke="rgba(255,255,255,0.4)" stroke-width="1" style="mix-blend-mode: screen;">\n`;
+    for (let i = 0; i < numScratches; i++) {
+      const x = rng.range(0, width);
+      const y = rng.range(0, height);
+      const len = rng.range(10, 100);
+      const angle = rng.range(0, Math.PI * 2);
+      svg += `<line x1="${x}" y1="${y}" x2="${x + Math.cos(angle) * len}" y2="${y + Math.sin(angle) * len}" />\n`;
+    }
+    svg += `</g>\n`;
+
+    svg += `<g fill="rgba(255,255,255,0.6)" style="mix-blend-mode: screen;">\n`;
+    for (let i = 0; i < numDust; i++) {
+      const x = rng.range(0, width);
+      const y = rng.range(0, height);
+      const r = rng.range(0.5, 2);
+      svg += `<circle cx="${x}" cy="${y}" r="${r}" />\n`;
+    }
+    svg += `</g>\n`;
+
+    svg += `<g stroke="rgba(0,0,0,0.3)" stroke-width="1" style="mix-blend-mode: multiply;">\n`;
+    for (let i = 0; i < numScratches / 2; i++) {
+      const x = rng.range(0, width);
+      const y = rng.range(0, height);
+      const len = rng.range(5, 50);
+      const angle = rng.range(0, Math.PI * 2);
+      svg += `<line x1="${x}" y1="${y}" x2="${x + Math.cos(angle) * len}" y2="${y + Math.sin(angle) * len}" />\n`;
+    }
+    svg += `</g>\n`;
   }
 
   return svg;
