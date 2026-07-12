@@ -96,11 +96,20 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement,
          const shaderCanvas = document.querySelector<HTMLCanvasElement>(`#shader-${layer.id} canvas`);
          if (shaderCanvas && shaderCanvas.width > 0 && shaderCanvas.height > 0) {
             if (preserveTransparency) {
+               const offCanvas = document.createElement('canvas');
+               offCanvas.width = bounds.width;
+               offCanvas.height = bounds.height;
+               const offCtx = offCanvas.getContext('2d')!;
+               
                // Draw the original image first to establish the alpha mask
-               ctx.drawImage(layer.params.image, finalX, finalY, bounds.width, bounds.height);
+               offCtx.drawImage(layer.params.image, 0, 0, bounds.width, bounds.height);
                // Switch composite mode to clip the shader inside the image pixels
-               ctx.globalCompositeOperation = "source-in";
-               ctx.drawImage(shaderCanvas, finalX, finalY, bounds.width, bounds.height);
+               offCtx.globalCompositeOperation = "source-in";
+               offCtx.drawImage(shaderCanvas, 0, 0, bounds.width, bounds.height);
+               
+               // Draw the composited offscreen canvas to the main canvas
+               ctx.globalCompositeOperation = (layer.params.blendMode as GlobalCompositeOperation) || "source-over";
+               ctx.drawImage(offCanvas, finalX, finalY, bounds.width, bounds.height);
             } else {
                // Draw the shader directly as a rectangle
                ctx.drawImage(shaderCanvas, finalX, finalY, bounds.width, bounds.height);
