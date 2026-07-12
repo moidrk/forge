@@ -1,59 +1,73 @@
 import * as React from "react";
 import { useToolcraft } from "@/toolcraft/runtime/react";
 import { generatePreview } from "@/lib/generation/engine";
-import { DesignRecipe } from "@/lib/generation/types";
+import { DesignRecipe, DesignRecipeLayer } from "@/lib/generation/types";
 import { MeshGradient, GodRays, NeuroNoise, LiquidMetal, GrainGradient, Metaballs, GemSmoke, Warp } from "@paper-design/shaders-react";
 
-export function ForgeCanvas() {
+export function dummyGpuCheck() { return navigator.gpu; }
+export default function ForgeCanvas() {
   const { state } = useToolcraft();
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  const values = state.values as Record<string, any>;
+  const storeStr = (state.values.layerPropertiesStore as string) || "{}";
+  let store: Record<string, any> = {};
+  try {
+    store = JSON.parse(storeStr);
+  } catch(e) {}
+
+  React.useEffect(() => {
+    if (!canvasRef.current || !containerRef.current) return;
+    
+    // Extract uploaded images from media assets
+    const imagesPromises = state.mediaAssets
+      .filter((asset) => asset.sourceTarget === "images" || !asset.sourceTarget) // Catch all images
+      .map((asset) => {
+        return new Promise<{ id: string, img: HTMLImageElement }>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve({ id: asset.layerId || asset.id, img });
+          img.onerror = reject;
+          img.src = asset.dataUrl;
+        });
+      });
+
+    Promise.all(imagesPromises).then((imagesData) => {
+      const imageMap = new Map<string, HTMLImageElement>();
+      imagesData.forEach(d => imageMap.set(d.id, d.img));
+
+      const recipe = createRecipeFromState(state, store, imageMap);
+      generatePreview(recipe, canvasRef.current!);
+    }).catch(console.error);
+  }, [state.layers, state.values.layerPropertiesStore, state.mediaAssets, state.canvas.size.width, state.canvas.size.height]);
+
+  const shaderLayers = state.layers.filter(l => l.visible && store[l.id]?.type === "shader");
+
   const getColor = (val: any, defaultColor: string) => {
     if (!val) return defaultColor;
     if (typeof val === 'string') return val;
     return val.hex || defaultColor;
   };
 
-  React.useEffect(() => {
-    if (!canvasRef.current || !containerRef.current) return;
-    
-    const webglCanvas = containerRef.current.querySelector('canvas');
-    
-    // Extract uploaded images from media assets
-    const imagesPromises = state.mediaAssets
-      .filter((asset) => asset.sourceTarget === "images")
-      .map((asset) => {
-        return new Promise<HTMLImageElement>((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve(img);
-          img.onerror = reject;
-          img.src = asset.dataUrl;
-        });
-      });
-
-    Promise.all(imagesPromises).then((images) => {
-      const recipe = createRecipeFromState(state, images);
-      generatePreview(recipe, canvasRef.current!, webglCanvas);
-    }).catch(console.error);
-  }, [state.values, state.mediaAssets, state.canvas.size.width, state.canvas.size.height]);
-
   return (
     <div className="flex h-full w-full items-center justify-center p-8 relative">
       <div id="forge-shader-container" ref={containerRef} style={{ position: 'absolute', top: -9999, left: -9999, width: state.canvas.size.width, height: state.canvas.size.height, pointerEvents: 'none' }}>
-        {values.shaderEnabled && (
-          <ShaderRenderer 
-            type={values.shaderType ?? "MeshGradient"}
-            colors={[
-              getColor(values.shaderColor1, "#ff0000"),
-              getColor(values.shaderColor2, "#00ff00"),
-              getColor(values.shaderColor3, "#0000ff"),
-              getColor(values.shaderColor4, "#ffff00")
-            ]}
-            image={values.shaderWarpImage && state.mediaAssets.filter((a: any) => a.sourceTarget === "images")[0] ? state.mediaAssets.filter((a: any) => a.sourceTarget === "images")[0].dataUrl : undefined}
-          />
-        )}
+        {shaderLayers.map((layer) => {
+          const props = store[layer.id];
+          return (
+            <div key={layer.id} id={`shader-${layer.id}`} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
+              <ShaderRenderer 
+                type={props.shaderType ?? "MeshGradient"}
+                colors={[
+                  getColor(props.shaderColor1, "#ff0000"),
+                  getColor(props.shaderColor2, "#00ff00"),
+                  getColor(props.shaderColor3, "#0000ff"),
+                  getColor(props.shaderColor4, "#ffff00")
+                ]}
+                image={props.shaderWarpImage && state.mediaAssets[0] ? state.mediaAssets[0].dataUrl : undefined}
+              />
+            </div>
+          );
+        })}
       </div>
       <canvas
         ref={canvasRef}
@@ -70,96 +84,53 @@ export function ForgeCanvas() {
   );
 }
 
-export function createRecipeFromState(state: any, images: HTMLImageElement[]): DesignRecipe {
-  const values = state.values as Record<string, any>;
+export function createRecipeFromState(state: any, store: Record<string, any>, imageMap: Map<string, HTMLImageElement>): DesignRecipe {
   const getColor = (val: any, defaultColor: string) => {
     if (!val) return defaultColor;
     if (typeof val === 'string') return val;
     return val.hex || defaultColor;
   };
 
+  const layers: DesignRecipeLayer[] = state.layers.map((layer: any) => {
+    const props = store[layer.id] || {};
+    
+    // Default to image type if it's an uploaded asset not in the store yet
+    const type = props.type || "image";
+
+    let params: any = { ...props };
+    
+    if (type === "image") {
+      params.image = imageMap.get(layer.id);
+      params.blendMode = props.imageBlendMode || "source-over";
+      params.opacity = props.imageOpacity ?? 1;
+    } else if (type === "shader") {
+      params.color1 = getColor(props.shaderColor1, "#ff0000");
+      params.color2 = getColor(props.shaderColor2, "#00ff00");
+      params.color3 = getColor(props.shaderColor3, "#0000ff");
+      params.color4 = getColor(props.shaderColor4, "#ffff00");
+    } else if (type === "techOverlay") {
+      params.color = getColor(props.techColor, "#000000");
+    } else if (type === "halftone") {
+      params.color = getColor(props.halftoneColor, "#ffffff");
+    }
+
+    return {
+      id: layer.id,
+      type,
+      visible: layer.visible,
+      params
+    };
+  });
+
+  // Toolcraft layer panel displays top layer first, so we might need to reverse it for bottom-to-top rendering
+  // Toolcraft layer index 0 is top. So we reverse it.
+  layers.reverse();
+
   return {
-    seed: values.seed ?? 12345,
+    seed: state.values.seed ?? 12345,
     width: state.canvas.size.width,
     height: state.canvas.size.height,
-    layers: {
-      shader: {
-        enabled: values.shaderEnabled ?? true,
-        params: {
-          type: values.shaderType ?? "MeshGradient",
-          color1: getColor(values.shaderColor1, "#ff0000"),
-          color2: getColor(values.shaderColor2, "#00ff00"),
-          color3: getColor(values.shaderColor3, "#0000ff"),
-          color4: getColor(values.shaderColor4, "#ffff00"),
-        },
-      },
-      imageLayout: {
-        enabled: values.imageLayoutEnabled ?? true,
-        params: {
-          images,
-          columns: values.columns ?? 3,
-          rows: values.rows ?? 3,
-          gap: values.gap ?? 10,
-          layoutStyle: values.layoutStyle ?? "asymmetrical",
-          blendMode: values.imageBlendMode ?? "source-over",
-          opacity: values.imageOpacity ?? 1.0,
-        },
-      },
-      base: {
-        enabled: values.baseEnabled ?? true,
-        params: {
-          color1: getColor(values.baseColor1, "#111111"),
-          color2: getColor(values.baseColor2, "#333333"),
-          type: "gradient",
-        },
-      },
-      halftone: {
-        enabled: values.halftoneEnabled ?? true,
-        params: {
-          style: values.halftoneStyle ?? "dots",
-          color: getColor(values.halftoneColor, "#ffffff"),
-          dotSize: values.halftoneSize ?? 4,
-          spacing: values.halftoneSpacing ?? 6,
-          angle: values.halftoneAngle ?? 45,
-        },
-      },
-      colorGrade: {
-        enabled: values.colorGradeEnabled ?? false,
-        params: {
-          hue: values.cgHue ?? 0,
-          saturation: values.cgSat ?? 1.2,
-          contrast: values.cgCon ?? 1.1,
-          vignette: values.cgVignette ?? 0,
-        },
-      },
-      paper: {
-        enabled: values.paperEnabled ?? true,
-        params: {
-          paperColor: getColor(values.paperColor, "#f4f0ec"),
-          grainIntensity: values.grainIntensity ?? 0.1,
-          texture: "grain",
-          grainSize: 1,
-          scratchesEnabled: values.scratchesEnabled ?? false,
-          scratchIntensity: values.scratchIntensity ?? 0.5,
-        },
-      },
-      techOverlay: {
-        enabled: values.techOverlayEnabled ?? true,
-        params: {
-          style: values.techStyle ?? "cyberpunk",
-          color: getColor(values.techColor, "#000000"),
-          density: values.techDensity ?? 0.5,
-          showBarcodes: values.showBarcodes ?? true,
-        },
-      },
-      glitch: {
-        enabled: values.glitchEnabled ?? false,
-        params: {
-          intensity: values.glitchIntensity ?? 0.5,
-          glitchRGB: values.glitchRGB ?? false,
-        },
-      },
-    },
+    layers
   };
 }
 

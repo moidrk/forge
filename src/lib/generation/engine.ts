@@ -1,22 +1,18 @@
-import { DesignRecipe, LayerConfig, Seed } from './types';
+import { DesignRecipe, DesignRecipeLayer, Seed } from './types';
 import { RNG } from './rng';
 
-import { renderBaseLayer, generateBaseLayerSVG } from './modules/base';
 import { renderHalftoneLayer, generateHalftoneLayerSVG } from './modules/halftone';
-import { renderColorGradeLayer, generateColorGradeLayerSVG } from './modules/colorGrade';
-import { renderPaperLayer, generatePaperLayerSVG } from './modules/paper';
 import { renderTechOverlayLayer, generateTechOverlayLayerSVG } from './modules/techOverlay';
-import { renderTypographyLayer, generateTypographyLayerSVG } from './modules/typography';
 import { renderGlitchLayer, generateGlitchLayerSVG } from './modules/glitch';
-import { renderImageLayoutLayer, generateImageLayoutLayerSVG } from './modules/imageLayout';
 
-export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement, shaderCanvas?: HTMLCanvasElement | null, pixelRatio: number = 1): void {
+export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
   const { width, height } = recipe;
   
   // Set canvas resolution
+  const pixelRatio = window.devicePixelRatio || 1;
   canvas.width = width * pixelRatio;
   canvas.height = height * pixelRatio;
 
@@ -26,66 +22,60 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement,
   ctx.save();
   ctx.scale(pixelRatio, pixelRatio);
 
-  // 0. Draw WebGL shader layer first as the absolute bottom background
-  if (shaderCanvas && shaderCanvas.width > 0 && shaderCanvas.height > 0) {
-    try {
-      ctx.drawImage(shaderCanvas, 0, 0, width, height);
-    } catch (e) {
-      console.warn("Failed to draw shader canvas", e);
+  // Iterate through layers bottom to top (we reversed them in ForgeCanvas)
+  for (let i = 0; i < recipe.layers.length; i++) {
+    const layer = recipe.layers[i];
+    if (!layer.visible) continue;
+
+    const rng = new RNG(recipe.seed + i);
+
+    if (layer.type === "shader") {
+      const shaderCanvas = document.querySelector<HTMLCanvasElement>(`#shader-${layer.id} canvas`);
+      if (shaderCanvas && shaderCanvas.width > 0 && shaderCanvas.height > 0) {
+        try {
+          ctx.drawImage(shaderCanvas, 0, 0, width, height);
+        } catch (e) {
+          console.warn("Failed to draw shader canvas", e);
+        }
+      }
+    } else if (layer.type === "image" && layer.params.image) {
+      ctx.globalCompositeOperation = layer.params.blendMode || "source-over";
+      ctx.globalAlpha = layer.params.opacity ?? 1;
+      
+      const img = layer.params.image;
+      
+      // Calculate object-fit: cover logic
+      const imgRatio = img.width / img.height;
+      const canvasRatio = width / height;
+      
+      let drawWidth = width;
+      let drawHeight = height;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (imgRatio > canvasRatio) {
+        // Image is wider than canvas
+        drawWidth = height * imgRatio;
+        offsetX = (width - drawWidth) / 2;
+      } else {
+        // Image is taller than canvas
+        drawHeight = width / imgRatio;
+        offsetY = (height - drawHeight) / 2;
+      }
+      
+      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+    } else if (layer.type === "techOverlay") {
+      renderTechOverlayLayer(ctx, width, height, rng, layer.params);
+    } else if (layer.type === "halftone") {
+      ctx.globalCompositeOperation = 'overlay';
+      renderHalftoneLayer(ctx, width, height, rng, layer.params);
+      ctx.globalCompositeOperation = 'source-over';
+    } else if (layer.type === "glitch") {
+      renderGlitchLayer(ctx, width, height, rng, layer.params);
     }
-  }
-
-  // Define strictly ordered rendering pipeline
-  // 1. Base / Background
-  if (recipe.layers.base?.enabled) {
-    const baseRng = new RNG(recipe.seed + 1);
-    renderBaseLayer(ctx, width, height, baseRng, recipe.layers.base.params);
-  }
-
-  // 2. Image Layout Grid Collage
-  if (recipe.layers.imageLayout?.enabled) {
-    const imageRng = new RNG(recipe.seed + 2);
-    renderImageLayoutLayer(ctx, width, height, imageRng, recipe.layers.imageLayout.params);
-  }
-
-  // 3. Halftone
-  if (recipe.layers.halftone?.enabled) {
-    const halftoneRng = new RNG(recipe.seed + 3);
-    ctx.globalCompositeOperation = 'overlay';
-    renderHalftoneLayer(ctx, width, height, halftoneRng, recipe.layers.halftone.params);
-    ctx.globalCompositeOperation = 'source-over';
-  }
-
-  // 4. Color Grading
-  if (recipe.layers.colorGrade?.enabled) {
-    const cgRng = new RNG(recipe.seed + 4);
-    renderColorGradeLayer(ctx, width, height, cgRng, recipe.layers.colorGrade.params);
-  }
-
-  // 5. Paper Effects
-  if (recipe.layers.paper?.enabled) {
-    const paperRng = new RNG(recipe.seed + 5);
-    ctx.globalCompositeOperation = 'multiply';
-    renderPaperLayer(ctx, width, height, paperRng, recipe.layers.paper.params);
-    ctx.globalCompositeOperation = 'source-over';
-  }
-
-  // 6. Tech Overlays
-  if (recipe.layers.techOverlay?.enabled) {
-    const techRng = new RNG(recipe.seed + 6);
-    renderTechOverlayLayer(ctx, width, height, techRng, recipe.layers.techOverlay.params);
-  }
-
-  // 7. Typography
-  if (recipe.layers.typography?.enabled) {
-    const typoRng = new RNG(recipe.seed + 7);
-    renderTypographyLayer(ctx, width, height, typoRng, recipe.layers.typography.params);
-  }
-
-  // 8. Glitch / Post-processing
-  if (recipe.layers.glitch?.enabled) {
-    const glitchRng = new RNG(recipe.seed + 8);
-    renderGlitchLayer(ctx, width, height, glitchRng, recipe.layers.glitch.params);
   }
 
   ctx.restore();
@@ -93,66 +83,33 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement,
 
 export function generateSVG(recipe: DesignRecipe): string {
   const { width, height } = recipe;
-
   let svgContent = '';
 
-  if (recipe.layers.shader?.enabled) {
-    // Shaders are WebGL-based and cannot be directly exported as SVG vectors.
-    // We add a fallback placeholder here.
-    svgContent += `
-      <!-- Shader Fallback -->
-      <rect width="${width}" height="${height}" fill="#000000" />
-      <text x="${width/2}" y="${height/2}" fill="#ffffff" font-family="sans-serif" font-size="24" text-anchor="middle">
-        [ ${recipe.layers.shader.params.type || 'Shader'} Effect (Requires Raster Export) ]
-      </text>
-    `;
-  }
-  if (recipe.layers.base?.enabled) {
-    svgContent += generateBaseLayerSVG(width, height, new RNG(recipe.seed + 1), recipe.layers.base.params);
-  }
-  if (recipe.layers.imageLayout?.enabled) {
-    svgContent += generateImageLayoutLayerSVG(width, height, new RNG(recipe.seed + 2), recipe.layers.imageLayout.params);
-  }
-  if (recipe.layers.halftone?.enabled) {
-    svgContent += generateHalftoneLayerSVG(width, height, new RNG(recipe.seed + 3), recipe.layers.halftone.params);
-  }
-  if (recipe.layers.colorGrade?.enabled) {
-    svgContent += generateColorGradeLayerSVG(width, height, new RNG(recipe.seed + 4), recipe.layers.colorGrade.params);
-  }
-  if (recipe.layers.paper?.enabled) {
-    svgContent += generatePaperLayerSVG(width, height, new RNG(recipe.seed + 5), recipe.layers.paper.params);
-  }
-  if (recipe.layers.techOverlay?.enabled) {
-    svgContent += generateTechOverlayLayerSVG(width, height, new RNG(recipe.seed + 6), recipe.layers.techOverlay.params);
-  }
-  if (recipe.layers.typography?.enabled) {
-    svgContent += generateTypographyLayerSVG(width, height, new RNG(recipe.seed + 7), recipe.layers.typography.params);
-  }
-  if (recipe.layers.glitch?.enabled) {
-    svgContent += generateGlitchLayerSVG(width, height, new RNG(recipe.seed + 8), recipe.layers.glitch.params);
+  for (let i = 0; i < recipe.layers.length; i++) {
+    const layer = recipe.layers[i];
+    if (!layer.visible) continue;
+
+    const rng = new RNG(recipe.seed + i);
+    
+    if (layer.type === "techOverlay") {
+      svgContent += generateTechOverlayLayerSVG(width, height, rng, layer.params);
+    } else if (layer.type === "halftone") {
+      svgContent += generateHalftoneLayerSVG(width, height, rng, layer.params);
+    } else if (layer.type === "glitch") {
+      svgContent += generateGlitchLayerSVG(width, height, rng, layer.params);
+    }
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
-  <defs>
-    <filter id="noiseFilter">
-      <feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="3" stitchTiles="stitch"/>
-    </filter>
-  </defs>
-  ${svgContent}
-</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%">
+    <rect width="${width}" height="${height}" fill="transparent" />
+    ${svgContent}
+  </svg>`;
 }
 
 export function randomizeRecipe(baseRecipe: DesignRecipe, mode: 'full' | 'unlocked' | 'light'): DesignRecipe {
   const newSeed = mode === 'full' ? Math.floor(Math.random() * 1000000) : baseRecipe.seed + (mode === 'light' ? 1 : 100);
-  
-  // Here we would implement complex parameter mutations depending on the mode.
-  // For 'unlocked', we only change non-locked layer parameters.
-  // For 'light', we slightly jitter the values.
-  
-  // Simple full clone for now (to be extended)
   const newRecipe: DesignRecipe = JSON.parse(JSON.stringify(baseRecipe));
   newRecipe.seed = newSeed;
-
   return newRecipe;
 }
 
@@ -161,93 +118,6 @@ export function createDefaultRecipe(width: number, height: number): DesignRecipe
     seed: 12345,
     width,
     height,
-    layers: {
-      shader: {
-        enabled: true,
-        params: {
-          type: 'MeshGradient',
-          // We will inject the specific shader parameters via UI.
-          // By default, just some generic ones or empty.
-          color1: '#ff0000',
-          color2: '#00ff00',
-          color3: '#0000ff',
-          color4: '#ffff00',
-        }
-      },
-      base: {
-        enabled: true,
-        params: {
-          color1: '#111111',
-          color2: '#333333',
-          type: 'gradient'
-        }
-      },
-      imageLayout: {
-        enabled: false,
-        params: {
-          images: [], // Array of data URLs or sources
-          columns: 3,
-          rows: 3,
-          gap: 10,
-          objectFit: 'cover',
-          opacity: 1.0,
-          layoutStyle: 'asymmetrical' // symmetrical or asymmetrical BSP
-        }
-      },
-      halftone: {
-        enabled: false,
-        params: {
-          dotSize: 4,
-          spacing: 6,
-          color: '#ffffff'
-        }
-      },
-      colorGrade: {
-        enabled: false,
-        params: {
-          hue: 0,
-          saturation: 1.2,
-          contrast: 1.1
-        }
-      },
-      paper: {
-        enabled: true,
-        params: {
-          texture: 'grain',
-          grainIntensity: 0.1,
-          grainSize: 1,
-          paperColor: '#f4f0ec',
-          inkBleed: 0,
-          printImperfection: 0.2
-        }
-      },
-      techOverlay: {
-        enabled: false,
-        params: {
-          density: 0.5,
-          color: '#00ff00',
-          showBarcodes: true
-        }
-      },
-      typography: {
-        enabled: false,
-        params: {
-          text: 'FORGE',
-          fontSize: 120,
-          fontFamily: 'Inter',
-          color: '#ffffff',
-          x: width / 2,
-          y: height / 2,
-          align: 'center'
-        }
-      },
-      glitch: {
-        enabled: false,
-        params: {
-          intensity: 0.5,
-          slices: 5
-        }
-      }
-    }
+    layers: []
   };
 }

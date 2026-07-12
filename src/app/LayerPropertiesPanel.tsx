@@ -1,0 +1,115 @@
+import * as React from "react";
+import { useToolcraft } from "@/toolcraft/runtime/react";
+import { Slider, Color, Select, Checkbox, ControlFieldLabel } from "@/toolcraft/ui";
+
+export function LayerPropertiesPanel() {
+  const { state, dispatch } = useToolcraft();
+  
+  const layerId = state.selectedLayerId;
+  const storeStr = (state.values.layerPropertiesStore as string) || "{}";
+  
+  let store: Record<string, any> = {};
+  try {
+    store = JSON.parse(storeStr);
+  } catch(e) {}
+  
+  const selectedLayer = state.layers.find((l: any) => l.id === layerId);
+  const layerProps = layerId ? store[layerId] : null;
+
+  if (!layerId || !selectedLayer) {
+    return <div className="p-4 text-sm text-neutral-500">Select a layer to edit its properties.</div>;
+  }
+
+  // If the layer doesn't have custom props (e.g. standard uploaded image), it might just have opacity/blend mode.
+  const props = layerProps || { type: "image", imageBlendMode: "source-over", imageOpacity: 1 };
+
+  const updateProp = (key: string, value: any) => {
+    const newStore = { ...store, [layerId]: { ...props, [key]: value } };
+    dispatch({
+      type: "controls.setValue",
+      target: "layerPropertiesStore",
+      value: JSON.stringify(newStore)
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">{props.type} Properties</div>
+      
+      {props.type === "shader" && (
+        <>
+          <Select
+            name="Shader Type"
+            options={[ { label: "Mesh Gradient", value: "MeshGradient" }, { label: "Liquid Metal", value: "LiquidMetal" }, { label: "Metaballs", value: "Metaballs" }, { label: "God Rays", value: "GodRays" }, { label: "Neuro Noise", value: "NeuroNoise" }, { label: "Grain Gradient", value: "GrainGradient" }, { label: "Gem Smoke", value: "GemSmoke" }, { label: "Warp", value: "Warp" } ]}
+            value={props.shaderType || "MeshGradient"}
+            onValueChange={(val) => updateProp("shaderType", val)}
+          />
+          <Checkbox
+            name="Warp Image"
+            checked={props.shaderWarpImage || false}
+            onCheckedChange={(val) => updateProp("shaderWarpImage", val)}
+          />
+          <div className="grid grid-cols-2 gap-2 mt-2">
+             <Color name="Color 1" hex={props.shaderColor1?.hex || "#ff0000"} onValueChange={(val) => updateProp("shaderColor1", val)} />
+             <Color name="Color 2" hex={props.shaderColor2?.hex || "#00ff00"} onValueChange={(val) => updateProp("shaderColor2", val)} />
+             <Color name="Color 3" hex={props.shaderColor3?.hex || "#0000ff"} onValueChange={(val) => updateProp("shaderColor3", val)} />
+             <Color name="Color 4" hex={props.shaderColor4?.hex || "#ffff00"} onValueChange={(val) => updateProp("shaderColor4", val)} />
+          </div>
+        </>
+      )}
+
+      {props.type === "techOverlay" && (
+        <>
+          <Select
+            name="Style"
+            options={[ { label: "Cyberpunk HUD", value: "cyberpunk" }, { label: "Minimalist Print", value: "minimalist" }, { label: "Blueprint", value: "blueprint" } ]}
+            value={props.techStyle || "cyberpunk"}
+            onValueChange={(val) => updateProp("techStyle", val)}
+          />
+          <Color name="Color" hex={props.techColor?.hex || "#000000"} onValueChange={(val) => updateProp("techColor", val)} />
+          <Slider name="Density" value={props.techDensity ?? 0.5} min={0} max={1} step={0.05} onValueChange={(val) => updateProp("techDensity", val)} />
+          <Checkbox name="Show Barcodes" checked={props.showBarcodes ?? true} onCheckedChange={(val) => updateProp("showBarcodes", val)} />
+        </>
+      )}
+
+      {props.type === "glitch" && (
+        <>
+          <Slider name="Intensity" value={props.glitchIntensity ?? 0.5} min={0} max={1} step={0.05} onValueChange={(val) => updateProp("glitchIntensity", val)} />
+          <Checkbox name="RGB Split (VHS)" checked={props.glitchRGB ?? false} onCheckedChange={(val) => updateProp("glitchRGB", val)} />
+        </>
+      )}
+
+      {props.type === "halftone" && (
+        <>
+          <Select
+            name="Style"
+            options={[ { label: "Dots", value: "dots" }, { label: "Lines", value: "lines" } ]}
+            value={props.halftoneStyle || "dots"}
+            onValueChange={(val) => updateProp("halftoneStyle", val)}
+          />
+          <Color name="Color" hex={props.halftoneColor?.hex || "#ffffff"} onValueChange={(val) => updateProp("halftoneColor", val)} />
+          <Slider name="Size" value={props.halftoneSize ?? 4} min={1} max={20} step={1} onValueChange={(val) => updateProp("halftoneSize", val)} />
+          <Slider name="Spacing" value={props.halftoneSpacing ?? 6} min={2} max={40} step={1} onValueChange={(val) => updateProp("halftoneSpacing", val)} />
+          <Slider name="Angle" value={props.halftoneAngle ?? 45} min={0} max={180} step={1} onValueChange={(val) => updateProp("halftoneAngle", val)} />
+        </>
+      )}
+
+      {props.type === "image" && (
+        <>
+          <Select
+            name="Blend Mode"
+            options={[
+              { label: "Normal", value: "source-over" },
+              { label: "Multiply", value: "multiply" },
+              { label: "Screen", value: "screen" },
+              { label: "Overlay", value: "overlay" }
+            ]}
+            value={props.imageBlendMode || "source-over"}
+            onValueChange={(val) => updateProp("imageBlendMode", val)}
+          />
+          <Slider name="Opacity" value={props.imageOpacity ?? 1} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("imageOpacity", val)} />
+        </>
+      )}
+    </div>
+  );
+}

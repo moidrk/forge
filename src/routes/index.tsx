@@ -1,7 +1,8 @@
 import * as React from "react";
 import { ToolcraftApp } from "@/toolcraft/runtime/react";
 import { appSchema } from "../app/app-schema";
-import { ForgeCanvas } from "../app/ForgeCanvas";
+import ForgeCanvas from "../app/ForgeCanvas";
+import { LayerPropertiesPanel } from "../app/LayerPropertiesPanel";
 
 const randomHexColor = () => "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
 const randomRange = (min: number, max: number) => min + Math.random() * (max - min);
@@ -9,57 +10,109 @@ const randomInt = (min: number, max: number) => Math.floor(randomRange(min, max 
 
 export function AppHome(): React.JSX.Element {
   const handlePanelAction = React.useCallback(async (context: any) => {
-    if (context.action.value === "shuffle") {
+    const actionVal = context.action.value;
+
+    if (actionVal === "addShader" || actionVal === "addTechOverlay" || actionVal === "addGlitch" || actionVal === "addHalftone") {
+      const typeMap: Record<string, string> = {
+        addShader: "shader",
+        addTechOverlay: "techOverlay",
+        addGlitch: "glitch",
+        addHalftone: "halftone"
+      };
+      const nameMap: Record<string, string> = {
+        addShader: "Shader Background",
+        addTechOverlay: "Tech Overlay",
+        addGlitch: "Glitch FX",
+        addHalftone: "Halftone"
+      };
+      const type = typeMap[actionVal];
+      const name = nameMap[actionVal];
+      const layerId = `${type}-${Date.now()}`;
+
+      // Add the layer to the left panel
+      context.dispatch({
+        type: "layers.add",
+        layer: {
+          id: layerId,
+          name: name,
+          kind: "layer",
+          visible: true
+        },
+        insertIndex: 0
+      });
+
+      // Initialize its properties in the store
+      const storeStr = context.state.values.layerPropertiesStore || "{}";
+      const store = JSON.parse(storeStr);
+      store[layerId] = { type };
+      
+      context.dispatch({
+        type: "controls.setValue",
+        target: "layerPropertiesStore",
+        value: JSON.stringify(store)
+      });
+      
+      // Select the new layer
+      setTimeout(() => {
+        context.dispatch({ type: "layers.select", layerId });
+      }, 10);
+      
+    } else if (actionVal === "shuffle") {
+      const storeStr = context.state.values.layerPropertiesStore || "{}";
+      const store = JSON.parse(storeStr);
+      
       const blendModes = ["source-over", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "luminosity"];
-      const styles = ["asymmetrical", "symmetrical"];
       const halftoneStyles = ["dots", "lines", "crosshatch"];
       const shaderTypes = ["MeshGradient", "LiquidMetal", "Metaballs", "GodRays", "NeuroNoise", "GrainGradient", "GemSmoke", "Warp"];
       const techStyles = ["cyberpunk", "minimalist", "blueprint"];
 
-      const newValues: Record<string, any> = {
-        seed: randomInt(0, 1000000),
-        columns: randomInt(1, 10),
-        rows: randomInt(1, 10),
-        gap: randomInt(0, 50),
-        imageBlendMode: blendModes[randomInt(0, blendModes.length - 1)],
-        imageOpacity: randomRange(0.3, 1),
-        layoutStyle: styles[randomInt(0, 1)],
-        shaderType: shaderTypes[randomInt(0, shaderTypes.length - 1)],
-        shaderWarpImage: Math.random() > 0.5,
-        shaderColor1: { hex: randomHexColor() },
-        shaderColor2: { hex: randomHexColor() },
-        shaderColor3: { hex: randomHexColor() },
-        shaderColor4: { hex: randomHexColor() },
-        baseColor1: { hex: randomHexColor() },
-        baseColor2: { hex: randomHexColor() },
-        halftoneColor: { hex: randomHexColor() },
-        halftoneSize: randomRange(1, 10),
-        halftoneSpacing: randomRange(2, 15),
-        halftoneAngle: randomRange(0, 180),
-        halftoneStyle: halftoneStyles[randomInt(0, 2)],
-        paperColor: { hex: randomHexColor() },
-        grainIntensity: randomRange(0.01, 0.3),
-        scratchesEnabled: Math.random() > 0.5,
-        scratchIntensity: randomRange(0.1, 1),
-        techStyle: techStyles[randomInt(0, techStyles.length - 1)],
-        techColor: { hex: randomHexColor() },
-        techDensity: randomRange(0.1, 0.8),
-        cgHue: randomRange(-180, 180),
-        cgSat: randomRange(0, 2),
-        cgCon: randomRange(0.5, 1.5),
-        cgVignette: randomRange(0, 0.8),
-        glitchIntensity: randomRange(0, 1),
-        glitchRGB: Math.random() > 0.5,
-      };
-
-      for (const [key, value] of Object.entries(newValues)) {
-        context.dispatch({
-          type: "controls.setValue",
-          target: key,
-          value: value
-        });
+      // Update all layer properties
+      for (const layer of context.state.layers) {
+        const props = store[layer.id] || { type: "image" };
+        
+        if (props.type === "shader") {
+          props.shaderType = shaderTypes[randomInt(0, shaderTypes.length - 1)];
+          props.shaderWarpImage = Math.random() > 0.5;
+          props.shaderColor1 = { hex: randomHexColor() };
+          props.shaderColor2 = { hex: randomHexColor() };
+          props.shaderColor3 = { hex: randomHexColor() };
+          props.shaderColor4 = { hex: randomHexColor() };
+        } else if (props.type === "techOverlay") {
+          props.techStyle = techStyles[randomInt(0, techStyles.length - 1)];
+          props.techColor = { hex: randomHexColor() };
+          props.techDensity = randomRange(0.1, 0.8);
+          props.showBarcodes = Math.random() > 0.3;
+        } else if (props.type === "glitch") {
+          props.glitchIntensity = randomRange(0, 1);
+          props.glitchRGB = Math.random() > 0.5;
+        } else if (props.type === "halftone") {
+          props.halftoneColor = { hex: randomHexColor() };
+          props.halftoneSize = randomRange(1, 10);
+          props.halftoneSpacing = randomRange(2, 15);
+          props.halftoneAngle = randomRange(0, 180);
+          props.halftoneStyle = halftoneStyles[randomInt(0, 2)];
+        } else if (props.type === "image" || props.type === undefined) {
+          props.type = "image";
+          props.imageBlendMode = blendModes[randomInt(0, blendModes.length - 1)];
+          props.imageOpacity = randomRange(0.3, 1);
+        }
+        
+        store[layer.id] = props;
       }
-    } else if (context.action.value === "Export PNG") {
+
+      context.dispatch({
+        type: "controls.setValue",
+        target: "layerPropertiesStore",
+        value: JSON.stringify(store)
+      });
+      
+      // Shuffle some global controls that we kept in general (if any remain)
+      // We removed most of them, maybe just seed?
+      if (context.state.values.seed !== undefined) {
+        context.dispatch({ type: "controls.setValue", target: "seed", value: randomInt(0, 1000000) });
+      }
+
+    } else if (actionVal === "Export PNG") {
       return new Promise<void>(async (resolve, reject) => {
         try {
           const { createToolcraftPngExportCanvas } = await import("@/toolcraft/runtime/export");
@@ -71,21 +124,26 @@ export function AppHome(): React.JSX.Element {
           const resolution = values["export.image.resolution"] as string || "4k";
           const includeBackground = values["export.includeBackground"] as boolean ?? true;
 
+          const storeStr = (state.values.layerPropertiesStore as string) || "{}";
+          let store: Record<string, any> = {};
+          try { store = JSON.parse(storeStr); } catch(e) {}
+
           const imagesPromises = state.mediaAssets
-            .filter((asset: any) => asset.sourceTarget === "images")
+            .filter((asset: any) => asset.sourceTarget === "images" || !asset.sourceTarget)
             .map((asset: any) => {
-              return new Promise<HTMLImageElement>((resolveImg, rejectImg) => {
+              return new Promise<{ id: string, img: HTMLImageElement }>((resolveImg, rejectImg) => {
                 const img = new Image();
-                img.onload = () => resolveImg(img);
+                img.onload = () => resolveImg({ id: asset.layerId || asset.id, img });
                 img.onerror = rejectImg;
                 img.src = asset.dataUrl;
               });
             });
 
-          const images = await Promise.all(imagesPromises);
-          const recipe = createRecipeFromState(state, images);
-          
-          const shaderCanvas = document.querySelector<HTMLCanvasElement>('#forge-shader-container canvas');
+          const imagesData = await Promise.all(imagesPromises);
+          const imageMap = new Map<string, HTMLImageElement>();
+          imagesData.forEach((d: any) => imageMap.set(d.id, d.img));
+
+          const recipe = createRecipeFromState(state, store, imageMap);
 
           const exportCanvas = createToolcraftPngExportCanvas({
             includeBackground,
@@ -93,7 +151,7 @@ export function AppHome(): React.JSX.Element {
             state,
             render: (renderContext) => {
               const tempCanvas = document.createElement("canvas");
-              generatePreview(recipe, tempCanvas, shaderCanvas, renderContext.pixelRatio);
+              generatePreview(recipe, tempCanvas);
               renderContext.context.drawImage(tempCanvas, 0, 0, renderContext.cssWidth, renderContext.cssHeight);
             }
           });
@@ -126,6 +184,7 @@ export function AppHome(): React.JSX.Element {
       canvasContent={<ForgeCanvas />} 
       renderDefaultCanvasMedia={false} 
       onPanelAction={handlePanelAction}
+      controlRenderers={{ layerPropertiesEditor: LayerPropertiesPanel }}
     />
   );
 }
