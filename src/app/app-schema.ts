@@ -29,7 +29,8 @@ export const appSchema = defineToolcraft({
                 { value: "addShader", label: "Add Shader", icon: "wand-sparkles" },
                 { value: "addTechOverlay", label: "Add Tech Overlay", icon: "wand-sparkles" },
                 { value: "addGlitch", label: "Add Glitch", icon: "wand-sparkles" },
-                { value: "addHalftone", label: "Add Halftone", icon: "wand-sparkles" }
+                { value: "addHalftone", label: "Add Halftone", icon: "wand-sparkles" },
+                { value: "addImageLayout", label: "Add Grid Layout", icon: "wand-sparkles" }
               ],
             },
             shuffle: {

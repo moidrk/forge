@@ -94,6 +94,21 @@ export function LayerPropertiesPanel() {
         </>
       )}
 
+      {props.type === "imageLayout" && (
+        <>
+          <Slider name="Layout Seed" value={props.layoutSeed ?? 446331} min={0} max={1000000} step={1} onValueChange={(val) => updateProp("layoutSeed", val)} />
+          <Select
+            name="Grid Style"
+            options={[ { label: "Asymmetrical", value: "asymmetrical" }, { label: "Symmetrical", value: "symmetrical" } ]}
+            value={props.layoutStyle || "asymmetrical"}
+            onValueChange={(val) => updateProp("layoutStyle", val)}
+          />
+          <Slider name="Complexity X" value={props.columns ?? 3} min={1} max={10} step={1} onValueChange={(val) => updateProp("columns", val)} />
+          <Slider name="Complexity Y" value={props.rows ?? 3} min={1} max={10} step={1} onValueChange={(val) => updateProp("rows", val)} />
+          <Slider name="Gap Size" value={props.gap ?? 10} min={0} max={100} step={1} onValueChange={(val) => updateProp("gap", val)} />
+        </>
+      )}
+
       {/* Universal Blend Controls */}
       <Select
         name="Blend Mode"

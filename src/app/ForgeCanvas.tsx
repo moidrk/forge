@@ -117,6 +117,8 @@ export function createRecipeFromState(state: any, store: Record<string, any>, im
       params.color = getColor(props.techColor, "#000000");
     } else if (type === "halftone") {
       params.color = getColor(props.halftoneColor, "#ffffff");
+    } else if (type === "imageLayout") {
+      params.images = Array.from(imageMap.values());
     }
 
     return {

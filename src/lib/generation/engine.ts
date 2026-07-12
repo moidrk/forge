@@ -4,6 +4,7 @@ import { RNG } from './rng';
 import { renderHalftoneLayer, generateHalftoneLayerSVG } from './modules/halftone';
 import { renderTechOverlayLayer, generateTechOverlayLayerSVG } from './modules/techOverlay';
 import { renderGlitchLayer, generateGlitchLayerSVG } from './modules/glitch';
+import { renderImageLayoutLayer, generateImageLayoutLayerSVG } from './modules/imageLayout';
 
 export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement): void {
   const ctx = canvas.getContext('2d');
@@ -71,6 +72,8 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement)
       renderHalftoneLayer(ctx, width, height, rng, layer.params);
     } else if (layer.type === "glitch") {
       renderGlitchLayer(ctx, width, height, rng, layer.params);
+    } else if (layer.type === "imageLayout") {
+      renderImageLayoutLayer(ctx, width, height, new RNG(layer.params.layoutSeed ?? recipe.seed), layer.params);
     }
 
     ctx.restore();
@@ -95,6 +98,8 @@ export function generateSVG(recipe: DesignRecipe): string {
       svgContent += generateHalftoneLayerSVG(width, height, rng, layer.params);
     } else if (layer.type === "glitch") {
       svgContent += generateGlitchLayerSVG(width, height, rng, layer.params);
+    } else if (layer.type === "imageLayout") {
+      svgContent += generateImageLayoutLayerSVG(width, height, new RNG(layer.params.layoutSeed ?? recipe.seed), layer.params);
     }
   }
 

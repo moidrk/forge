@@ -91,6 +91,12 @@ export function AppHome(): React.JSX.Element {
           props.halftoneSpacing = randomRange(2, 15);
           props.halftoneAngle = randomRange(0, 180);
           props.halftoneStyle = halftoneStyles[randomInt(0, 2)];
+        } else if (props.type === "imageLayout") {
+          props.layoutSeed = randomInt(0, 1000000);
+          props.layoutStyle = Math.random() > 0.5 ? "asymmetrical" : "symmetrical";
+          props.columns = randomInt(2, 6);
+          props.rows = randomInt(2, 6);
+          props.gap = randomInt(0, 30);
         } else if (props.type === "image" || props.type === undefined) {
           props.type = "image";
         }
