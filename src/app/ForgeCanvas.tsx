@@ -142,6 +142,7 @@ export default function ForgeCanvas() {
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       if (!layer.visible) continue;
+      if (store[layer.id]?.locked) continue;
       
       if (layer.type === "image" && layer.params.image) {
         const bounds = getImageLayerBounds(width, height, layer.params.image, layer.params);
@@ -300,11 +301,13 @@ export default function ForgeCanvas() {
   
   if (selectedLayer && currentRecipeRef.current) {
      const selectedProps = store[selectedLayer.id] || {};
-     const type = selectedProps.type || "image";
-     if (type === "image") {
-        const image = currentRecipeRef.current.layers.find(l => l.id === selectedLayer.id)?.params?.image;
-        if (image) {
-           selectedLayerBounds = getImageLayerBounds(currentRecipeRef.current.width, currentRecipeRef.current.height, image, selectedProps);
+     if (!selectedProps.locked) {
+        const type = selectedProps.type || "image";
+        if (type === "image") {
+           const image = currentRecipeRef.current.layers.find(l => l.id === selectedLayer.id)?.params?.image;
+           if (image) {
+              selectedLayerBounds = getImageLayerBounds(currentRecipeRef.current.width, currentRecipeRef.current.height, image, selectedProps);
+           }
         }
      }
   }

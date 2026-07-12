@@ -19,7 +19,7 @@ import {
   ScrollFade,
   stopPanelHeaderButtonPointerDown,
 } from "@/toolcraft/ui";
-import { Eye, EyeOff, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Trash2, Lock, Unlock } from "lucide-react";
 
 import type { ToolcraftLayer, ToolcraftPanelState } from "../state/types";
 import {
@@ -388,18 +388,22 @@ function LayerActionButtons({
   isDragging,
   isReorderDragging,
   isVisible,
+  isLocked,
   layer,
   onDelete,
   onToggleVisibility,
+  onToggleLock,
 }: {
   displayName: string;
   isEditingName: boolean;
   isDragging: boolean;
   isReorderDragging: boolean;
   isVisible: boolean;
+  isLocked?: boolean;
   layer: ToolcraftLayer;
   onDelete: () => void;
   onToggleVisibility: () => void;
+  onToggleLock?: () => void;
 }): React.JSX.Element | null {
   if (isEditingName) {
     return null;
@@ -434,6 +438,21 @@ function LayerActionButtons({
         variant="ghost"
       >
         {layer.visible ? <Eye style={mutedIconStyle} /> : <EyeOff style={mutedIconStyle} />}
+      </Button>
+      <Button
+        aria-label={isLocked ? `Unlock ${displayName}` : `Lock ${displayName}`}
+        className="cursor-default!"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleLock?.();
+        }}
+        onDoubleClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+        size="icon-sm"
+        type="button"
+        variant="ghost"
+      >
+        {isLocked ? <Lock style={mutedIconStyle} /> : <Unlock style={mutedIconStyle} />}
       </Button>
       <Button
         aria-label={`Delete ${displayName}`}
@@ -513,6 +532,7 @@ function LayerRow({
   isReorderDragging,
   isSelected,
   isVisible,
+  isLocked,
   layer,
   onDelete,
   onPointerCancel,
@@ -523,6 +543,7 @@ function LayerRow({
   onSelect,
   onToggleCollapsed,
   onToggleVisibility,
+  onToggleLock,
 }: {
   depth: number;
   hasMedia: boolean;
@@ -535,6 +556,7 @@ function LayerRow({
   isReorderDragging: boolean;
   isSelected: boolean;
   isVisible: boolean;
+  isLocked?: boolean;
   layer: ToolcraftLayer;
   onDelete: () => void;
   onPointerCancel: React.PointerEventHandler<HTMLElement>;
@@ -545,6 +567,7 @@ function LayerRow({
   onSelect: () => void;
   onToggleCollapsed: () => void;
   onToggleVisibility: () => void;
+  onToggleLock?: () => void;
 }): React.JSX.Element {
   const displayName = getLayerDisplayName(layer);
   const isGroup = isGroupLayer(layer);
@@ -652,9 +675,11 @@ function LayerRow({
           isDragging={isDragging}
           isReorderDragging={isReorderDragging}
           isVisible={isVisible}
+          isLocked={isLocked}
           layer={layer}
           onDelete={onDelete}
           onToggleVisibility={onToggleVisibility}
+          onToggleLock={onToggleLock}
         />
       </div>
     </li>
@@ -800,6 +825,10 @@ export function LayersPanel({
   const visibleLayers = React.useMemo(() => getToolcraftVisibleLayerRows(state.layers), [
     state.layers,
   ]);
+  const storeStr = (state.values.layerPropertiesStore as string) || "{}";
+  const store = React.useMemo(() => {
+    try { return JSON.parse(storeStr); } catch(e) { return {}; }
+  }, [storeStr]);
 
   if (!state.schema.panels.layers) {
     return null;
@@ -1317,6 +1346,11 @@ export function LayersPanel({
                   onToggleVisibility={() =>
                     dispatch({ layerId: layer.id, type: "layers.toggleVisibility" })
                   }
+                  isLocked={store[layer.id]?.locked === true}
+                  onToggleLock={() => {
+                    const newStore = { ...store, [layer.id]: { ...store[layer.id], locked: !(store[layer.id]?.locked === true) } };
+                    dispatch({ type: "controls.setValue", target: "layerPropertiesStore", value: JSON.stringify(newStore) });
+                  }}
                 />
               );
             })}
