@@ -109,6 +109,14 @@ export function LayerPropertiesPanel() {
         </>
       )}
 
+      {props.type === "image" && (
+        <>
+          <Slider name="Scale" value={props.scale ?? 1.0} min={0.1} max={5.0} step={0.01} onValueChange={(val) => updateProp("scale", val)} />
+          <Slider name="X Position" value={props.transformX ?? 0} min={-2000} max={2000} step={1} onValueChange={(val) => updateProp("transformX", val)} />
+          <Slider name="Y Position" value={props.transformY ?? 0} min={-2000} max={2000} step={1} onValueChange={(val) => updateProp("transformY", val)} />
+        </>
+      )}
+
       {/* Universal Blend Controls */}
       <Select
         name="Blend Mode"

@@ -6,7 +6,36 @@ import { renderTechOverlayLayer, generateTechOverlayLayerSVG } from './modules/t
 import { renderGlitchLayer, generateGlitchLayerSVG } from './modules/glitch';
 import { renderImageLayoutLayer, generateImageLayoutLayerSVG } from './modules/imageLayout';
 
-export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement): void {
+export function getImageLayerBounds(width: number, height: number, img: HTMLImageElement, params: any) {
+  const scale = params.scale ?? 1.0;
+  const imgRatio = img.width / img.height;
+  const canvasRatio = width / height;
+
+  let drawWidth = width;
+  let drawHeight = height;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (imgRatio > canvasRatio) {
+    drawWidth = height * imgRatio;
+    offsetX = (width - drawWidth) / 2;
+  } else {
+    drawHeight = width / imgRatio;
+    offsetY = (height - drawHeight) / 2;
+  }
+
+  const transformX = params.transformX ?? 0;
+  const transformY = params.transformY ?? 0;
+
+  const finalWidth = drawWidth * scale;
+  const finalHeight = drawHeight * scale;
+  const finalX = offsetX + transformX + (drawWidth - finalWidth) / 2;
+  const finalY = offsetY + transformY + (drawHeight - finalHeight) / 2;
+
+  return { x: finalX, y: finalY, width: finalWidth, height: finalHeight };
+}
+
+export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement, dragOverrides?: Record<string, { dx: number, dy: number }>): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
@@ -44,28 +73,18 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement)
         }
       }
     } else if (layer.type === "image" && layer.params.image) {
-      const img = layer.params.image;
+      const bounds = getImageLayerBounds(width, height, layer.params.image, layer.params);
       
-      // Calculate object-fit: cover logic
-      const imgRatio = img.width / img.height;
-      const canvasRatio = width / height;
+      let finalX = bounds.x;
+      let finalY = bounds.y;
       
-      let drawWidth = width;
-      let drawHeight = height;
-      let offsetX = 0;
-      let offsetY = 0;
-
-      if (imgRatio > canvasRatio) {
-        // Image is wider than canvas
-        drawWidth = height * imgRatio;
-        offsetX = (width - drawWidth) / 2;
-      } else {
-        // Image is taller than canvas
-        drawHeight = width / imgRatio;
-        offsetY = (height - drawHeight) / 2;
+      // Apply ephemeral drag overrides if available
+      if (dragOverrides && dragOverrides[layer.id]) {
+        finalX += dragOverrides[layer.id].dx;
+        finalY += dragOverrides[layer.id].dy;
       }
       
-      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      ctx.drawImage(layer.params.image, finalX, finalY, bounds.width, bounds.height);
     } else if (layer.type === "techOverlay") {
       renderTechOverlayLayer(ctx, width, height, rng, layer.params);
     } else if (layer.type === "halftone") {
