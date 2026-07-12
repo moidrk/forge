@@ -1271,8 +1271,11 @@ export function LayersPanel({
 
   const panelSurface = (
     <PanelSurface
-      className={className}
-      data-panel-framed={framed}
+      className={cn(
+        "pointer-events-auto flex max-h-[calc(100dvh-1.25rem)] w-[240px] flex-col overflow-hidden rounded-lg p-0",
+        className,
+      )}
+      data-toolcraft-layers-panel=""
       data-panel-id="layers"
     >
       <input 
