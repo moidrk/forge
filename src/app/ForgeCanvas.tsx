@@ -9,7 +9,8 @@ export default function ForgeCanvas() {
   const { state, dispatch } = useToolcraft();
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const dragStateRef = React.useRef<{ layerId: string, startX: number, startY: number, currentX: number, currentY: number } | null>(null);
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const dragStateRef = React.useRef<{ layerId: string, mode: "move" | "scale", startX: number, startY: number, currentX: number, currentY: number, initialScale?: number, initialDistance?: number } | null>(null);
   const currentRecipeRef = React.useRef<DesignRecipe | null>(null);
   const animationFrameRef = React.useRef<number | null>(null);
 
@@ -52,25 +53,57 @@ export default function ForgeCanvas() {
     return val.hex || defaultColor;
   };
 
-  const getLogicCoords = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current) return { x: 0, y: 0 };
-    const rect = canvasRef.current.getBoundingClientRect();
-    const pixelRatio = window.devicePixelRatio || 1;
-    const x = ((e.clientX - rect.left) * (canvasRef.current.width / rect.width)) / pixelRatio;
-    const y = ((e.clientY - rect.top) * (canvasRef.current.height / rect.height)) / pixelRatio;
+  const getLogicCoords = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!wrapperRef.current || !currentRecipeRef.current) return { x: 0, y: 0 };
+    const rect = wrapperRef.current.getBoundingClientRect();
+    const width = currentRecipeRef.current.width;
+    const height = currentRecipeRef.current.height;
+    
+    const x = ((e.clientX - rect.left) / rect.width) * width;
+    const y = ((e.clientY - rect.top) / rect.height) * height;
     return { x, y };
   };
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!currentRecipeRef.current || !canvasRef.current) return;
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!currentRecipeRef.current || !wrapperRef.current) return;
     
-    // Release capture so dragging outside canvas still works
     e.currentTarget.setPointerCapture(e.pointerId);
 
     const { x, y } = getLogicCoords(e);
+    const target = e.target as HTMLElement;
+
+    // Support for scaling and moving
+    if (target.dataset.action === "scale" && state.selectedLayerId) {
+      const selectedProps = store[state.selectedLayerId] || {};
+      const image = currentRecipeRef.current.layers.find(l => l.id === state.selectedLayerId)?.params?.image;
+      if (image) {
+        const bounds = getImageLayerBounds(currentRecipeRef.current.width, currentRecipeRef.current.height, image, selectedProps);
+        const centerX = bounds.x + bounds.width / 2;
+        const centerY = bounds.y + bounds.height / 2;
+        const initialDistance = Math.hypot(x - centerX, y - centerY);
+        dragStateRef.current = { 
+          layerId: state.selectedLayerId, 
+          mode: "scale", 
+          startX: x, startY: y, currentX: x, currentY: y,
+          initialScale: selectedProps.scale ?? 1.0,
+          initialDistance
+        };
+      }
+      return;
+    }
+
+    if (target.dataset.action === "move" && state.selectedLayerId) {
+      dragStateRef.current = { 
+        layerId: state.selectedLayerId, 
+        mode: "move", 
+        startX: x, startY: y, currentX: x, currentY: y 
+      };
+      return;
+    }
+
     const { width, height, layers } = currentRecipeRef.current;
+    let hitLayerId: string | undefined = undefined;
     
-    // Iterate from top-most layer (end of array) to bottom-most
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       if (!layer.visible) continue;
@@ -78,23 +111,48 @@ export default function ForgeCanvas() {
       if (layer.type === "image" && layer.params.image) {
         const bounds = getImageLayerBounds(width, height, layer.params.image, layer.params);
         if (x >= bounds.x && x <= bounds.x + bounds.width && y >= bounds.y && y <= bounds.y + bounds.height) {
-          dragStateRef.current = { layerId: layer.id, startX: x, startY: y, currentX: x, currentY: y };
-          dispatch({ layerId: layer.id, type: "layers.select" });
+          hitLayerId = layer.id;
           break;
         }
       }
     }
+
+    if (hitLayerId) {
+       dragStateRef.current = { layerId: hitLayerId, mode: "move", startX: x, startY: y, currentX: x, currentY: y };
+       if (hitLayerId !== state.selectedLayerId) {
+         dispatch({ layerId: hitLayerId, type: "layers.select" });
+       }
+    } else {
+       if (state.selectedLayerId) {
+         dispatch({ type: "layers.reorder", layers: state.layers, selectedLayerId: null });
+       }
+    }
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!dragStateRef.current || !currentRecipeRef.current || !canvasRef.current) return;
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragStateRef.current || !currentRecipeRef.current || !wrapperRef.current) return;
     
     const { x, y } = getLogicCoords(e);
     dragStateRef.current.currentX = x;
     dragStateRef.current.currentY = y;
     
-    const dx = x - dragStateRef.current.startX;
-    const dy = y - dragStateRef.current.startY;
+    let dx = 0, dy = 0, scale = undefined;
+
+    if (dragStateRef.current.mode === "move") {
+       dx = x - dragStateRef.current.startX;
+       dy = y - dragStateRef.current.startY;
+    } else if (dragStateRef.current.mode === "scale") {
+       const layerId = dragStateRef.current.layerId;
+       const layer = currentRecipeRef.current.layers.find(l => l.id === layerId);
+       if (layer && layer.params.image) {
+          const bounds = getImageLayerBounds(currentRecipeRef.current.width, currentRecipeRef.current.height, layer.params.image, { ...layer.params, scale: dragStateRef.current.initialScale });
+          const centerX = bounds.x + bounds.width / 2;
+          const centerY = bounds.y + bounds.height / 2;
+          const currentDistance = Math.hypot(x - centerX, y - centerY);
+          const ratio = currentDistance / (dragStateRef.current.initialDistance || 1);
+          scale = (dragStateRef.current.initialScale || 1.0) * ratio;
+       }
+    }
     
     if (animationFrameRef.current !== null) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -103,47 +161,120 @@ export default function ForgeCanvas() {
     animationFrameRef.current = requestAnimationFrame(() => {
       if (currentRecipeRef.current && canvasRef.current && dragStateRef.current) {
         generatePreview(currentRecipeRef.current, canvasRef.current, {
-          [dragStateRef.current.layerId]: { dx, dy }
+          [dragStateRef.current.layerId]: { dx, dy, scale }
         });
+        
+        // Update selection overlay DOM natively
+        const overlay = document.getElementById("selection-overlay");
+        if (overlay) {
+           const cw = currentRecipeRef.current.width;
+           const ch = currentRecipeRef.current.height;
+           const layer = currentRecipeRef.current.layers.find(l => l.id === dragStateRef.current!.layerId);
+           if (layer && layer.params.image) {
+             const newParams = { ...layer.params };
+             if (scale !== undefined) newParams.scale = scale;
+             const bounds = getImageLayerBounds(cw, ch, layer.params.image, newParams);
+             let finalX = bounds.x + dx;
+             let finalY = bounds.y + dy;
+             overlay.style.left = `${(finalX / cw) * 100}%`;
+             overlay.style.top = `${(finalY / ch) * 100}%`;
+             overlay.style.width = `${(bounds.width / cw) * 100}%`;
+             overlay.style.height = `${(bounds.height / ch) * 100}%`;
+           }
+        }
       }
     });
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragStateRef.current || !currentRecipeRef.current) return;
     e.currentTarget.releasePointerCapture(e.pointerId);
     
-    const { layerId, startX, startY, currentX, currentY } = dragStateRef.current;
+    const { layerId, startX, startY, currentX, currentY, mode } = dragStateRef.current;
+    
     const dx = currentX - startX;
     const dy = currentY - startY;
     
+    let finalScale = undefined;
+    if (mode === "scale") {
+       const layer = currentRecipeRef.current.layers.find(l => l.id === layerId);
+       if (layer && layer.params.image) {
+          const bounds = getImageLayerBounds(currentRecipeRef.current.width, currentRecipeRef.current.height, layer.params.image, { ...layer.params, scale: dragStateRef.current.initialScale });
+          const centerX = bounds.x + bounds.width / 2;
+          const centerY = bounds.y + bounds.height / 2;
+          const currentDistance = Math.hypot(currentX - centerX, currentY - centerY);
+          const ratio = currentDistance / (dragStateRef.current.initialDistance || 1);
+          finalScale = (dragStateRef.current.initialScale || 1.0) * ratio;
+       }
+    }
+
     dragStateRef.current = null;
     
-    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
-      // Find the existing transform for this layer to add to it
+    if (mode === "move" && (Math.abs(dx) > 1 || Math.abs(dy) > 1)) {
       const existingX = store[layerId]?.transformX ?? 0;
       const existingY = store[layerId]?.transformY ?? 0;
-      
-      // Update store state natively
-      dispatch({
-        type: "controls.setValue",
-        target: `${layerId}.transformX`,
-        value: existingX + dx,
-      });
-      dispatch({
-        type: "controls.setValue",
-        target: `${layerId}.transformY`,
-        value: existingY + dy,
-      });
+      dispatch({ type: "controls.setValue", target: `${layerId}.transformX`, value: existingX + dx });
+      dispatch({ type: "controls.setValue", target: `${layerId}.transformY`, value: existingY + dy });
+    } else if (mode === "scale" && finalScale !== undefined) {
+      dispatch({ type: "controls.setValue", target: `${layerId}.scale`, value: finalScale });
     } else {
-      // Just a click, re-render to remove overrides
       generatePreview(currentRecipeRef.current, canvasRef.current!);
+    }
+    
+    // Clear inline styles so React takes over
+    const overlay = document.getElementById("selection-overlay");
+    if (overlay) {
+       overlay.style.left = "";
+       overlay.style.top = "";
+       overlay.style.width = "";
+       overlay.style.height = "";
     }
   };
 
+  const handleOuterPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.target === containerRef.current && state.selectedLayerId) {
+       dispatch({ type: "layers.reorder", layers: state.layers, selectedLayerId: null });
+    }
+  };
+
+  // Compute Selection Overlay bounds
+  let selectedLayerBounds: { x: number, y: number, width: number, height: number } | null = null;
+  const selectedLayer = state.selectedLayerId ? state.layers.find((l: any) => l.id === state.selectedLayerId) : null;
+  
+  if (selectedLayer && currentRecipeRef.current) {
+     const selectedProps = store[selectedLayer.id] || {};
+     const type = selectedProps.type || "image";
+     if (type === "image") {
+        const image = currentRecipeRef.current.layers.find(l => l.id === selectedLayer.id)?.params?.image;
+        if (image) {
+           selectedLayerBounds = getImageLayerBounds(currentRecipeRef.current.width, currentRecipeRef.current.height, image, selectedProps);
+        }
+     }
+  }
+
+  const cw = state.canvas.size.width || 1;
+  const ch = state.canvas.size.height || 1;
+  let overlayStyle: React.CSSProperties = { display: 'none' };
+
+  if (selectedLayerBounds) {
+    overlayStyle = {
+      position: 'absolute',
+      left: `${(selectedLayerBounds.x / cw) * 100}%`,
+      top: `${(selectedLayerBounds.y / ch) * 100}%`,
+      width: `${(selectedLayerBounds.width / cw) * 100}%`,
+      height: `${(selectedLayerBounds.height / ch) * 100}%`,
+      pointerEvents: 'none',
+      zIndex: 50
+    };
+  }
+
   return (
-    <div className="flex h-full w-full items-center justify-center p-8 relative">
-      <div id="forge-shader-container" ref={containerRef} style={{ position: 'absolute', top: -9999, left: -9999, width: state.canvas.size.width, height: state.canvas.size.height, pointerEvents: 'none' }}>
+    <div 
+      className="flex h-full w-full items-center justify-center p-8 relative bg-neutral-900 overflow-hidden"
+      onPointerDown={handleOuterPointerDown}
+      ref={containerRef}
+    >
+      <div id="forge-shader-container" style={{ position: 'absolute', top: -9999, left: -9999, width: state.canvas.size.width, height: state.canvas.size.height, pointerEvents: 'none' }}>
         {shaderLayers.map((layer) => {
           const props = store[layer.id];
           return (
@@ -162,22 +293,38 @@ export default function ForgeCanvas() {
           );
         })}
       </div>
-      <canvas
-        ref={canvasRef}
+      
+      <div 
+        ref={wrapperRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className="max-h-full max-w-full rounded bg-transparent shadow-lg"
-        style={{
-          width: "auto",
-          height: "auto",
-          maxWidth: "100%",
-          maxHeight: "100%",
-          objectFit: "contain",
-          touchAction: "none"
-        }}
-      />
+        className="relative max-h-full max-w-full flex shrink-0 shadow-2xl rounded overflow-hidden" 
+        style={{ aspectRatio: `${state.canvas.size.width} / ${state.canvas.size.height}`, touchAction: "none" }}
+      >
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full bg-transparent"
+          style={{ pointerEvents: 'none' }}
+        />
+        
+        {selectedLayerBounds && (
+          <div id="selection-overlay" style={overlayStyle} className="group pointer-events-none">
+            {/* Box border */}
+            <div className="absolute inset-0 border border-blue-500 opacity-80" />
+            
+            {/* Central drag area */}
+            <div data-action="move" className="absolute inset-0 cursor-move pointer-events-auto" />
+            
+            {/* 4 Handles */}
+            <div data-action="scale" className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div data-action="scale" className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div data-action="scale" className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div data-action="scale" className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

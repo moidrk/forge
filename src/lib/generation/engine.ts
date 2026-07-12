@@ -35,7 +35,7 @@ export function getImageLayerBounds(width: number, height: number, img: HTMLImag
   return { x: finalX, y: finalY, width: finalWidth, height: finalHeight };
 }
 
-export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement, dragOverrides?: Record<string, { dx: number, dy: number }>): void {
+export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement, dragOverrides?: Record<string, { dx: number, dy: number, scale?: number }>): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
@@ -73,7 +73,12 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement,
         }
       }
     } else if (layer.type === "image" && layer.params.image) {
-      const bounds = getImageLayerBounds(width, height, layer.params.image, layer.params);
+      let params = layer.params;
+      if (dragOverrides && dragOverrides[layer.id] && dragOverrides[layer.id].scale !== undefined) {
+         params = { ...params, scale: dragOverrides[layer.id].scale };
+      }
+
+      const bounds = getImageLayerBounds(width, height, layer.params.image, params);
       
       let finalX = bounds.x;
       let finalY = bounds.y;
