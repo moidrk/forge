@@ -1,4 +1,3 @@
-
 ### Generative Engine Constraints
 
 1. **RNG Isolation (The Butterfly Effect)**: When building procedural Canvas 2D pipelines, isolate the Random Number Generator for each distinct rendering stage. Derive layer-specific seeds using `const rng = new RNG(globalSeed + stageOffset)` rather than relying on a single mutable `Math.random()` or global `rng.nextFloat()` sequence. This prevents parameter tweaks in one layer from accidentally re-rolling random values in all subsequent layers.
@@ -6,3 +5,5 @@
    - Mount the React WebGL component inside `canvasContent` but hide it visually using `style={{ position: 'absolute', top: -9999, pointerEvents: 'none' }}`.
    - Use a `useRef` to capture the underlying `<canvas>` element from the WebGL container.
    - Wait for the WebGL context to render, then use `ctx.drawImage(webglCanvas, 0, 0, width, height)` to pipe its pixels directly into the bottom layer of the 2D engine's rendering sequence.
+4. Use built-in Toolcraft controls before custom controls. **Exception for Forge:** Building custom UI panels and custom control renderers to handle dynamic, layer-specific properties (e.g. individual shader or tech overlay settings per layer) is explicitly permitted.
+5. Do not hand-compose runtime surfaces or render built-in control components directly in app code; use `ToolcraftApp`, schema controls, `canvasContent`, `controlRenderers`, `onPanelAction`, and runtime commands. **Exception for Forge:** You may render built-in control components (Slider, ColorPicker, etc.) inside custom `controlRenderers` when standard schema targets cannot support dynamic layer-based state.
