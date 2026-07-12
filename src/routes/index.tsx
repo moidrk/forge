@@ -3,6 +3,7 @@ import { ToolcraftApp } from "@/toolcraft/runtime/react";
 import { appSchema } from "../app/app-schema";
 import ForgeCanvas from "../app/ForgeCanvas";
 import { LayerPropertiesPanel } from "../app/LayerPropertiesPanel";
+import { ProductTour } from "../app/ProductTour";
 
 const randomHexColor = () => "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
 const randomRange = (min: number, max: number) => min + Math.random() * (max - min);
@@ -207,13 +208,16 @@ export function AppHome(): React.JSX.Element {
   }, []);
 
   return (
-    <ToolcraftApp 
-      className="h-dvh min-h-dvh" 
-      schema={appSchema} 
-      canvasContent={<ForgeCanvas />} 
-      renderDefaultCanvasMedia={false} 
-      onPanelAction={handlePanelAction}
-      controlRenderers={{ layerPropertiesEditor: LayerPropertiesPanel }}
-    />
+    <>
+      <ProductTour />
+      <ToolcraftApp 
+        className="h-dvh min-h-dvh" 
+        schema={appSchema} 
+        canvasContent={<ForgeCanvas />} 
+        renderDefaultCanvasMedia={false} 
+        onPanelAction={handlePanelAction}
+        controlRenderers={{ layerPropertiesEditor: LayerPropertiesPanel }}
+      />
+    </>
   );
 }
