@@ -72,6 +72,9 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement,
           console.warn("Failed to draw shader canvas", e);
         }
       }
+    } else if (layer.type === "image" && !layer.params.image && layer.params.fillColor) {
+      ctx.fillStyle = layer.params.fillColor.hex || layer.params.fillColor;
+      ctx.fillRect(0, 0, width, height);
     } else if (layer.type === "image" && layer.params.image) {
       let params = layer.params;
       if (dragOverrides && dragOverrides[layer.id] && dragOverrides[layer.id].scale !== undefined) {

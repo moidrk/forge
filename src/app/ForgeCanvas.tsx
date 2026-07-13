@@ -7,9 +7,42 @@ import { MeshGradient, GodRays, NeuroNoise, LiquidMetal, GrainGradient, Metaball
 export function dummyGpuCheck() { return navigator.gpu; }
 export default function ForgeCanvas() {
   const { state, dispatch } = useToolcraft();
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  const containerRef = React.useRef<HTMLDivElement>(null);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+
+  React.useEffect(() => {
+    const isFirstLaunch = !sessionStorage.getItem("forge_initialized");
+    if (isFirstLaunch) {
+      if (state.layers.length === 0) {
+        const layerId = "layer-initial";
+        dispatch({ 
+          type: "layers.add", 
+          layer: { id: layerId, name: "Background", kind: "layer", visible: true, parentGroupId: undefined },
+          insertIndex: 0
+        });
+        
+        const storeStr = (state.values.layerPropertiesStore as string) || "{}";
+        let store: Record<string, any> = {};
+        try { store = JSON.parse(storeStr); } catch(e) {}
+        
+        store[layerId] = { type: "image", fillColor: { hex: "#ffffff" } };
+        dispatch({
+          type: "controls.setValue",
+          target: "layerPropertiesStore",
+          value: JSON.stringify(store)
+        });
+      }
+
+      setTimeout(() => {
+        dispatch({ type: "canvas.center" });
+      }, 200);
+
+      sessionStorage.setItem("forge_initialized", "true");
+    }
+  }, [dispatch, state.layers.length, state.values.layerPropertiesStore]);
+
+  // Use a ref to track if we've rendered the initial frame
+  const containerRef = React.useRef<HTMLDivElement>(null);
   const dragStateRef = React.useRef<{ layerId: string, mode: "move" | "scale", startX: number, startY: number, currentX: number, currentY: number, initialScale?: number, initialDistance?: number } | null>(null);
   const currentRecipeRef = React.useRef<DesignRecipe | null>(null);
   const animationFrameRef = React.useRef<number | null>(null);
@@ -430,11 +463,30 @@ export function createRecipeFromState(state: any, store: Record<string, any>, im
     return val.hex || defaultColor;
   };
 
-  const layers: DesignRecipeLayer[] = state.layers.map((layer: any) => {
+  const gridGroupIds = new Set<string>();
+  state.layers.forEach((layer: any) => {
+    if (layer.kind === "group") {
+      const props = store[layer.id] || {};
+      if (props.type === "imageLayout") {
+        gridGroupIds.add(layer.id);
+      }
+    }
+  });
+
+  const processedLayers: DesignRecipeLayer[] = [];
+
+  state.layers.forEach((layer: any) => {
+    if (layer.parentGroupId && gridGroupIds.has(layer.parentGroupId)) {
+      return; // Skip child, it is consumed by the grid
+    }
+
     const props = store[layer.id] || {};
     
     // Default to image type if it's an uploaded asset not in the store yet
-    const type = props.type || "image";
+    let type = props.type;
+    if (!type) {
+      type = layer.kind === "group" ? "group" : "image";
+    }
 
     let params: any = { ...props };
     
@@ -460,16 +512,19 @@ export function createRecipeFromState(state: any, store: Record<string, any>, im
     } else if (type === "halftone") {
       params.color = getColor(props.halftoneColor, "#ffffff");
     } else if (type === "imageLayout") {
-      params.images = Array.from(imageMap.values());
+      const children = state.layers.filter((l: any) => l.parentGroupId === layer.id);
+      params.images = children.map((c: any) => imageMap.get(c.id)).filter(Boolean);
     }
 
-    return {
+    processedLayers.push({
       id: layer.id,
       type,
       visible: layer.visible,
       params
-    };
+    });
   });
+
+  const layers = processedLayers;
 
   // Toolcraft layer panel displays top layer first, so we might need to reverse it for bottom-to-top rendering
   // Toolcraft layer index 0 is top. So we reverse it.

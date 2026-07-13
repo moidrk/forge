@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ToolcraftApp } from "@/toolcraft/runtime/react";
+import { ToolcraftApp, useToolcraft } from "@/toolcraft/runtime/react";
 import { appSchema } from "../app/app-schema";
 import ForgeCanvas from "../app/ForgeCanvas";
 import { LayerPropertiesPanel } from "../app/LayerPropertiesPanel";
@@ -44,23 +44,59 @@ export function AppHome(): React.JSX.Element {
 
       let targetLayerId = layerId;
 
-      if (selectedLayer && selectedLayer.kind !== "group") {
-        // Convert the currently selected active layer into this effect
-        targetLayerId = selectedLayer.id;
-        context.dispatch({ type: "layers.rename", layerId: targetLayerId, name });
+      if (actionVal === "addImageLayout") {
+        if (selectedLayer && selectedLayer.kind === "group") {
+          targetLayerId = selectedLayer.id;
+          context.dispatch({ type: "layers.rename", layerId: targetLayerId, name });
+        } else if (selectedLayer && selectedLayer.kind !== "group") {
+          context.dispatch({
+            type: "layers.add",
+            layer: {
+              id: targetLayerId,
+              name: name,
+              kind: "group",
+              visible: true,
+              parentGroupId
+            },
+            insertIndex: 0
+          });
+          context.dispatch({
+            type: "layers.moveToGroup",
+            layerIds: [selectedLayer.id],
+            parentGroupId: targetLayerId
+          });
+        } else {
+          context.dispatch({
+            type: "layers.add",
+            layer: {
+              id: targetLayerId,
+              name: name,
+              kind: "group",
+              visible: true,
+              parentGroupId
+            },
+            insertIndex: 0
+          });
+        }
       } else {
-        // No active layer (or a group is selected), so spawn a new layer
-        context.dispatch({
-          type: "layers.add",
-          layer: {
-            id: targetLayerId,
-            name: name,
-            kind: "layer",
-            visible: true,
-            parentGroupId
-          },
-          insertIndex: 0
-        });
+        if (selectedLayer && selectedLayer.kind !== "group") {
+          // Convert the currently selected active layer into this effect
+          targetLayerId = selectedLayer.id;
+          context.dispatch({ type: "layers.rename", layerId: targetLayerId, name });
+        } else {
+          // No active layer (or a group is selected), so spawn a new layer
+          context.dispatch({
+            type: "layers.add",
+            layer: {
+              id: targetLayerId,
+              name: name,
+              kind: "layer",
+              visible: true,
+              parentGroupId
+            },
+            insertIndex: 0
+          });
+        }
       }
 
       // Initialize its properties in the store

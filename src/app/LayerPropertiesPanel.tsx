@@ -91,20 +91,23 @@ export function LayerPropertiesPanel() {
   if (isPending) {
     return (
       <div className="flex flex-col gap-4">
-        <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Pending Layer</div>
+        <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Layer Properties</div>
         <div className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-neutral-700/50 rounded-lg text-neutral-500 bg-neutral-900/20">
           <svg className="mb-3 opacity-30" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
           <div className="text-sm font-medium text-neutral-400">Empty Layer</div>
-          <div className="text-xs mt-1">Select an effect from the actions below, or drag an image onto the canvas.</div>
+          <div className="text-xs mt-1 mb-4">Select an effect below, or pick a fill color.</div>
+          <Color name="Fill Color" hex={props.fillColor?.hex || "#ffffff"} onValueChange={(val) => updateProp("fillColor", val)} />
         </div>
       </div>
     );
   }
 
+  const isGenericGroup = selectedLayer.kind === "group" && !isCustomEffect;
+
   return (
     <div className="flex flex-col gap-4">
       <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">
-        {selectedLayer.kind === "group" ? "Group" : currentType} Properties
+        {isGenericGroup ? "Group" : currentType} Properties
       </div>
       
       {currentType === "shader" && (
@@ -175,7 +178,7 @@ export function LayerPropertiesPanel() {
         </>
       )}
 
-      {currentType === "image" && (
+      {currentType === "image" && !isGenericGroup && (
         <>
           <Select
              name="Shader Filter"
