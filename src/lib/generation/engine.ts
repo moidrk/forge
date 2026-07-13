@@ -35,29 +35,36 @@ export function getImageLayerBounds(width: number, height: number, img: HTMLImag
   return { x: finalX, y: finalY, width: finalWidth, height: finalHeight };
 }
 
-export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement, dragOverrides?: Record<string, { dx: number, dy: number, scale?: number }>): void {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+export function hashStringToInteger(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
 
-  const { width, height } = recipe;
-  
-  // Set canvas resolution
-  const pixelRatio = window.devicePixelRatio || 1;
-  canvas.width = width * pixelRatio;
-  canvas.height = height * pixelRatio;
-
-  // Clear canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+export function renderRecipe(
+  recipe: DesignRecipe,
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  dragOverrides?: Record<string, { dx: number, dy: number, scale?: number }>
+): void {
+  const scaleX = width / recipe.width;
+  const scaleY = height / recipe.height;
 
   ctx.save();
-  ctx.scale(pixelRatio, pixelRatio);
+  ctx.scale(scaleX, scaleY);
 
   // Iterate through layers bottom to top (we reversed them in ForgeCanvas)
   for (let i = 0; i < recipe.layers.length; i++) {
     const layer = recipe.layers[i];
     if (!layer.visible) continue;
 
-    const rng = new RNG(recipe.seed + i);
+    const layerSeed = recipe.seed + hashStringToInteger(String(layer.id));
+    const rng = new RNG(layerSeed);
 
     ctx.save();
     ctx.globalCompositeOperation = (layer.params.blendMode as GlobalCompositeOperation) || "source-over";
@@ -67,21 +74,21 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement,
       const shaderCanvas = document.querySelector<HTMLCanvasElement>(`#shader-${layer.id} canvas`);
       if (shaderCanvas && shaderCanvas.width > 0 && shaderCanvas.height > 0) {
         try {
-          ctx.drawImage(shaderCanvas, 0, 0, width, height);
+          ctx.drawImage(shaderCanvas, 0, 0, recipe.width, recipe.height);
         } catch (e) {
           console.warn("Failed to draw shader canvas", e);
         }
       }
     } else if (layer.type === "image" && !layer.params.image && layer.params.fillColor) {
       ctx.fillStyle = layer.params.fillColor.hex || layer.params.fillColor;
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(0, 0, recipe.width, recipe.height);
     } else if (layer.type === "image" && layer.params.image) {
       let params = layer.params;
       if (dragOverrides && dragOverrides[layer.id] && dragOverrides[layer.id].scale !== undefined) {
          params = { ...params, scale: dragOverrides[layer.id].scale };
       }
 
-      const bounds = getImageLayerBounds(width, height, layer.params.image, params);
+      const bounds = getImageLayerBounds(recipe.width, recipe.height, layer.params.image, params);
       
       let finalX = bounds.x;
       let finalY = bounds.y;
@@ -118,27 +125,44 @@ export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement,
                ctx.drawImage(shaderCanvas, finalX, finalY, bounds.width, bounds.height);
             }
          } else {
-            // Fallback to normal image if shader canvas isn't ready
-            ctx.drawImage(layer.params.image, finalX, finalY, bounds.width, bounds.height);
+             // Fallback to normal image if shader canvas isn't ready
+             ctx.drawImage(layer.params.image, finalX, finalY, bounds.width, bounds.height);
          }
       } else {
          // Standard image rendering
          ctx.drawImage(layer.params.image, finalX, finalY, bounds.width, bounds.height);
       }
     } else if (layer.type === "techOverlay") {
-      renderTechOverlayLayer(ctx, width, height, rng, layer.params);
+      renderTechOverlayLayer(ctx, recipe.width, recipe.height, rng, layer.params);
     } else if (layer.type === "halftone") {
-      renderHalftoneLayer(ctx, width, height, rng, layer.params);
+      renderHalftoneLayer(ctx, recipe.width, recipe.height, rng, layer.params);
     } else if (layer.type === "glitch") {
-      renderGlitchLayer(ctx, width, height, rng, layer.params);
+      renderGlitchLayer(ctx, recipe.width, recipe.height, rng, layer.params);
     } else if (layer.type === "imageLayout") {
-      renderImageLayoutLayer(ctx, width, height, new RNG(layer.params.layoutSeed ?? recipe.seed), layer.params);
+      renderImageLayoutLayer(ctx, recipe.width, recipe.height, new RNG(layer.params.layoutSeed ?? recipe.seed), layer.params);
     }
 
     ctx.restore();
   }
 
   ctx.restore();
+}
+
+export function generatePreview(recipe: DesignRecipe, canvas: HTMLCanvasElement, dragOverrides?: Record<string, { dx: number, dy: number, scale?: number }>): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const { width, height } = recipe;
+  
+  // Set canvas resolution
+  const pixelRatio = window.devicePixelRatio || 1;
+  canvas.width = width * pixelRatio;
+  canvas.height = height * pixelRatio;
+
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  renderRecipe(recipe, ctx, canvas.width, canvas.height, dragOverrides);
 }
 
 export function generateSVG(recipe: DesignRecipe): string {
@@ -149,7 +173,8 @@ export function generateSVG(recipe: DesignRecipe): string {
     const layer = recipe.layers[i];
     if (!layer.visible) continue;
 
-    const rng = new RNG(recipe.seed + i);
+    const layerSeed = recipe.seed + hashStringToInteger(String(layer.id));
+    const rng = new RNG(layerSeed);
     
     if (layer.type === "techOverlay") {
       svgContent += generateTechOverlayLayerSVG(width, height, rng, layer.params);

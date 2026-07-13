@@ -1,7 +1,9 @@
 export class RNG {
   private state: number;
+  public readonly seed: number;
 
   constructor(seed: number) {
+    this.seed = seed;
     this.state = seed;
   }
 

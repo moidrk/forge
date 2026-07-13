@@ -48,15 +48,20 @@ export default function ForgeCanvas() {
     dispatchRef.current = dispatch;
   }, [state, dispatch]);
 
+  // Debounce rapid spacebar shuffling
+  const shuffleCooldownRef = React.useRef(false);
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         const target = e.target as HTMLElement;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
-          return; // Let user type spaces in text inputs
+          return;
         }
         e.preventDefault();
         e.stopPropagation();
+        if (shuffleCooldownRef.current) return; // Skip if still cooling down
+        shuffleCooldownRef.current = true;
+        setTimeout(() => { shuffleCooldownRef.current = false; }, 150); // 150ms cooldown
         import("../routes/index").then(mod => {
           mod.performGodModeShuffle(stateRef.current, dispatchRef.current);
         });
@@ -78,6 +83,22 @@ export default function ForgeCanvas() {
     store = JSON.parse(storeStr);
   } catch(e) {}
 
+  // Clean up orphaned layerPropertiesStore entries when layers are deleted
+  React.useEffect(() => {
+    const layerIds = new Set(state.layers.map((l: any) => l.id));
+    const storeKeys = Object.keys(store);
+    const orphanedKeys = storeKeys.filter(k => !layerIds.has(k));
+    if (orphanedKeys.length > 0) {
+      const cleanedStore = { ...store };
+      orphanedKeys.forEach(k => delete cleanedStore[k]);
+      dispatch({
+        type: "controls.setValue",
+        target: "layerPropertiesStore",
+        value: JSON.stringify(cleanedStore)
+      });
+    }
+  }, [state.layers.length]);
+
   React.useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
     
@@ -85,17 +106,21 @@ export default function ForgeCanvas() {
     const imagesPromises = state.mediaAssets
       .filter((asset) => asset.sourceTarget === "images" || !asset.sourceTarget) // Catch all images
       .map((asset) => {
-        return new Promise<{ id: string, img: HTMLImageElement }>((resolve, reject) => {
+        return new Promise<{ id: string, img: HTMLImageElement } | null>((resolve) => {
           const img = new Image();
           img.onload = () => resolve({ id: asset.layerId || asset.id, img });
-          img.onerror = reject;
+          img.onerror = () => resolve(null);
           img.src = asset.dataUrl;
         });
       });
 
     Promise.all(imagesPromises).then((imagesData) => {
       const imageMap = new Map<string, HTMLImageElement>();
-      imagesData.forEach(d => imageMap.set(d.id, d.img));
+      imagesData.forEach(d => {
+        if (d) {
+          imageMap.set(d.id, d.img);
+        }
+      });
 
       const recipe = createRecipeFromState(state, store, imageMap);
       currentRecipeRef.current = recipe;
@@ -534,11 +559,36 @@ export function createRecipeFromState(state: any, store: Record<string, any>, im
       params.color4 = getColor(props.shaderColor4, "#ffff00");
     } else if (type === "techOverlay") {
       params.color = getColor(props.techColor, "#000000");
+      params.density = props.techDensity ?? 0.5;
+      params.showBarcodes = props.showBarcodes ?? true;
+      params.style = props.techStyle || "cyberpunk";
     } else if (type === "halftone") {
       params.color = getColor(props.halftoneColor, "#ffffff");
+      params.style = props.halftoneStyle || "dots";
+      params.dotSize = props.halftoneSize ?? 4;
+      params.spacing = props.halftoneSpacing ?? 6;
+      params.angle = props.halftoneAngle ?? 45;
+    } else if (type === "glitch") {
+      params.intensity = props.glitchIntensity ?? 0.5;
+      params.slices = props.glitchSlices ?? 5;
+      params.glitchRGB = props.glitchRGB ?? false;
     } else if (type === "imageLayout") {
       const children = state.layers.filter((l: any) => l.parentGroupId === layer.id);
-      params.images = children.map((c: any) => imageMap.get(c.id)).filter(Boolean);
+      params.images = children.map((c: any) => {
+        const img = imageMap.get(c.id);
+        if (!img) return null;
+        const cProps = store[c.id] || {};
+        return {
+          image: img,
+          id: c.id,
+          scale: cProps.scale ?? 1.0,
+          transformX: cProps.transformX ?? 0,
+          transformY: cProps.transformY ?? 0,
+          opacity: cProps.opacity ?? cProps.imageOpacity ?? 1.0,
+          blendMode: cProps.blendMode || cProps.imageBlendMode || "source-over",
+          imageShaderFilter: cProps.imageShaderFilter || "none"
+        };
+      }).filter(Boolean);
     }
 
     processedLayers.push({

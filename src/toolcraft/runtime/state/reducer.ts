@@ -1406,21 +1406,47 @@ export function toolcraftReducer(
     }
 
     case "media.delete": {
-      if (!state.mediaAssets.some((asset) => asset.id === command.mediaId)) {
+      const mediaIdsToDelete = new Set<string>();
+      if (command.mediaId) {
+        mediaIdsToDelete.add(command.mediaId);
+      }
+      if (command.mediaIds && Array.isArray(command.mediaIds)) {
+        command.mediaIds.forEach((id: string) => mediaIdsToDelete.add(id));
+      }
+
+      if (mediaIdsToDelete.size === 0) {
         return state;
       }
 
-      const mediaAssets = state.mediaAssets.filter((asset) => asset.id !== command.mediaId);
+      const layerIdsToDelete = new Set<string>();
+      state.mediaAssets.forEach((asset) => {
+        if (mediaIdsToDelete.has(asset.id)) {
+          if (asset.layerId) {
+            layerIdsToDelete.add(asset.layerId);
+          }
+        }
+      });
+
+      const mediaAssets = state.mediaAssets.filter((asset) => !mediaIdsToDelete.has(asset.id));
+      const layers = state.layers.filter((layer) => !layerIdsToDelete.has(layer.id));
+      const selectedLayerId = layerIdsToDelete.has(state.selectedLayerId ?? "")
+        ? (layers[0]?.id ?? null)
+        : state.selectedLayerId;
+
       const timeline = getMediaReadyTimelineState(state.schema, state.timeline, mediaAssets);
       const shouldCommitTimeline = timeline !== state.timeline;
 
       return commitStatePatch(state, {
         after: {
+          layers,
           mediaAssets,
+          selectedLayerId,
           ...(shouldCommitTimeline ? { timeline } : {}),
         },
         before: {
+          layers: state.layers,
           mediaAssets: state.mediaAssets,
+          selectedLayerId: state.selectedLayerId,
           ...(shouldCommitTimeline ? { timeline: state.timeline } : {}),
         },
         label: "Delete media",

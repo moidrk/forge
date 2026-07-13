@@ -82,7 +82,7 @@ export function renderImageLayoutLayer(
     });
   }
 
-  // Apply gap (gap only makes sense for non-brutalist really, but we'll apply it)
+  // Apply gap
   if (layoutStyle !== 'brutalist') {
     cells = cells.map(c => ({
       x: c.x + gap / 2,
@@ -94,31 +94,42 @@ export function renderImageLayoutLayer(
 
   // Assign images to cells deterministically based on seed
   cells.forEach((cell, i) => {
-    // We map a deterministic image from the array
-    const imgIndex = Math.floor(rng.random() * images.length);
+    const cellRng = new RNG(rng.seed + i * 100);
+    const imgIndex = Math.floor(cellRng.random() * images.length);
     const imgSrc = images[imgIndex];
     if (!imgSrc) return;
 
-    // Load image synchronously is tricky in Canvas. Usually UI preloads and passes HTMLImageElement 
-    // or we draw placeholder if async. Since we need synchronous preview, we must assume imgSrc is loaded
-    // or we draw a placeholder rectangle for now.
-    // In a real app we'd have a media manager. For our pure logic:
-    
     // Draw placeholder box
-    ctx.fillStyle = `hsl(${rng.random() * 360}, 10%, 20%)`;
+    ctx.fillStyle = `hsl(${cellRng.random() * 360}, 10%, 20%)`;
     ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
 
-    // If we had an actual image element passed (e.g. `imgSrc` is HTMLImageElement), we would drawImage it here.
-    // Since images might be strings, we draw placeholders in `engine.ts` synchronously.
-    if (typeof imgSrc !== 'string' && imgSrc instanceof HTMLImageElement) {
+    const imgObj = (typeof imgSrc === 'object' && imgSrc !== null && !('tagName' in imgSrc))
+      ? imgSrc
+      : { image: imgSrc, scale: 1.0, transformX: 0, transformY: 0, opacity: 1.0, blendMode: 'source-over', imageShaderFilter: 'none', id: '' };
+
+    const imgElement = imgObj.image;
+    if (!imgElement) return;
+
+    if (typeof imgElement !== 'string' && imgElement instanceof HTMLImageElement) {
         ctx.save();
         ctx.beginPath();
         ctx.rect(cell.x, cell.y, cell.w, cell.h);
         ctx.clip();
-        
+
+        const imgScale = imgObj.scale ?? 1.0;
+        const imgTransformX = imgObj.transformX ?? 0;
+        const imgTransformY = imgObj.transformY ?? 0;
+        const imgOpacity = imgObj.opacity ?? 1.0;
+        const imgBlendMode = imgObj.blendMode ?? 'source-over';
+        const imgShaderFilter = imgObj.imageShaderFilter ?? 'none';
+        const imgId = imgObj.id ?? '';
+
+        ctx.globalAlpha = opacity * imgOpacity;
+        ctx.globalCompositeOperation = imgBlendMode as GlobalCompositeOperation;
+
         // Simple object-fit: cover using intrinsic dimensions
-        const imgW = imgSrc.naturalWidth || imgSrc.width;
-        const imgH = imgSrc.naturalHeight || imgSrc.height;
+        const imgW = imgElement.naturalWidth || imgElement.width;
+        const imgH = imgElement.naturalHeight || imgElement.height;
         
         if (imgW > 0 && imgH > 0) {
             const imgRatio = imgW / imgH;
@@ -135,7 +146,31 @@ export function renderImageLayoutLayer(
             const dx = cell.x + (cell.w - drawW) / 2;
             const dy = cell.y + (cell.h - drawH) / 2;
 
-            ctx.drawImage(imgSrc, dx, dy, drawW, drawH);
+            const finalW = drawW * imgScale;
+            const finalH = drawH * imgScale;
+            const finalX = dx + imgTransformX + (drawW - finalW) / 2;
+            const finalY = dy + imgTransformY + (drawH - finalH) / 2;
+
+            const hasShader = imgShaderFilter && imgShaderFilter !== "none";
+            if (hasShader && imgId) {
+               const shaderCanvas = document.querySelector<HTMLCanvasElement>(`#shader-${imgId} canvas`);
+               if (shaderCanvas && shaderCanvas.width > 0 && shaderCanvas.height > 0) {
+                  const offCanvas = document.createElement('canvas');
+                  offCanvas.width = finalW;
+                  offCanvas.height = finalH;
+                  const offCtx = offCanvas.getContext('2d')!;
+                  
+                  offCtx.drawImage(imgElement, 0, 0, finalW, finalH);
+                  offCtx.globalCompositeOperation = "source-in";
+                  offCtx.drawImage(shaderCanvas, 0, 0, finalW, finalH);
+                  
+                  ctx.drawImage(offCanvas, finalX, finalY, finalW, finalH);
+               } else {
+                   ctx.drawImage(imgElement, finalX, finalY, finalW, finalH);
+               }
+            } else {
+               ctx.drawImage(imgElement, finalX, finalY, finalW, finalH);
+            }
         }
         ctx.restore();
     }
@@ -151,7 +186,7 @@ export function generateImageLayoutLayerSVG(
   rng: RNG,
   params: Record<string, any>
 ): string {
-  const { columns = 3, rows = 3, gap = 10, opacity = 1.0, layoutStyle = 'asymmetrical' } = params;
+  const { images = [], columns = 3, rows = 3, gap = 10, opacity = 1.0, layoutStyle = 'asymmetrical' } = params;
   let cells = layoutStyle === 'symmetrical' 
     ? generateSymmetricalGrid({ x: 0, y: 0, w: width, h: height }, columns, rows)
     : generateGrid({ x: 0, y: 0, w: width, h: height }, columns, rows, rng);
@@ -174,7 +209,7 @@ export function generateImageLayoutLayerSVG(
   }
 
   let svg = `<g opacity="${opacity}">`;
-  cells.forEach(c => {
+  cells.forEach((c, i) => {
     let cx = c.x;
     let cy = c.y;
     let cw = c.w;
@@ -186,9 +221,40 @@ export function generateImageLayoutLayerSVG(
       cw -= gap;
       ch -= gap;
     }
-    const fill = `hsl(${Math.floor(rng.random() * 360)}, 10%, 20%)`;
-    svg += `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" fill="${fill}" />`;
-    svg += `\n<text x="${cx + cw/2}" y="${cy + ch/2}" fill="#fff" font-family="sans-serif" font-size="12" text-anchor="middle">Image Placeholder</text>`;
+
+    const cellRng = new RNG(rng.seed + i * 100);
+    const imgIndex = Math.floor(cellRng.random() * images.length);
+    const imgSrc = images[imgIndex];
+
+    const fill = `hsl(${Math.floor(cellRng.random() * 360)}, 10%, 20%)`;
+    svg += `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" fill="${fill}" />\n`;
+
+    let hasImage = false;
+    if (imgSrc) {
+      const imgObj = (typeof imgSrc === 'object' && imgSrc !== null && !('tagName' in imgSrc))
+        ? imgSrc
+        : { image: imgSrc, scale: 1.0, transformX: 0, transformY: 0, opacity: 1.0, blendMode: 'source-over', imageShaderFilter: 'none', id: '' };
+
+      const imgElement = imgObj.image;
+      const imgScale = imgObj.scale ?? 1.0;
+      const imgTransformX = imgObj.transformX ?? 0;
+      const imgTransformY = imgObj.transformY ?? 0;
+      const imgOpacity = imgObj.opacity ?? 1.0;
+      const imgBlendMode = imgObj.blendMode ?? 'source-over';
+
+      if (imgElement) {
+        const href = typeof imgElement === 'string' ? imgElement : (imgElement as HTMLImageElement).src || '';
+        if (href) {
+          const transformStr = `translate(${cx + cw / 2 + imgTransformX}, ${cy + ch / 2 + imgTransformY}) scale(${imgScale}) translate(${-(cx + cw / 2)}, ${-(cy + ch / 2)})`;
+          svg += `<image href="${href}" x="${cx}" y="${cy}" width="${cw}" height="${ch}" preserveAspectRatio="xMidYMid slice" transform="${transformStr}" opacity="${imgOpacity}" style="mix-blend-mode: ${imgBlendMode}" />\n`;
+          hasImage = true;
+        }
+      }
+    }
+
+    if (!hasImage) {
+      svg += `<text x="${cx + cw/2}" y="${cy + ch/2}" fill="#fff" font-family="sans-serif" font-size="12" text-anchor="middle">Image Placeholder</text>\n`;
+    }
   });
   svg += `</g>`;
   return svg;

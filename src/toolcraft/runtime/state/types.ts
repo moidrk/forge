@@ -52,7 +52,7 @@ export type ToolcraftCommand =
       replaceExisting?: boolean;
       type: "media.import";
     }
-  | { mediaId: string; type: "media.delete" }
+  | { mediaId?: string; mediaIds?: string[]; type: "media.delete" }
   | { mediaIds: string[]; type: "media.reorder" }
   | {
       mediaId: string;

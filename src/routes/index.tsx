@@ -176,6 +176,15 @@ export function AppHome(): React.JSX.Element {
         }
       }
 
+      let isEmptyLayer = false;
+      if (selectedLayer) {
+        const layerProps = context.state.values.layerPropertiesStore ? JSON.parse(context.state.values.layerPropertiesStore)[selectedLayer.id] : undefined;
+        const hasMediaAsset = context.state.mediaAssets.some((a: any) => a.layerId === selectedLayer.id || a.id === selectedLayer.id);
+        const isToolcraftImage = (selectedLayer.type === "image" && selectedLayer.params?.image) || hasMediaAsset;
+        const isCustomEffect = layerProps?.type && layerProps.type !== "image";
+        isEmptyLayer = !isCustomEffect && !isToolcraftImage && selectedLayer.kind !== "group";
+      }
+
       let targetLayerId = layerId;
 
       if (actionVal === "addImageLayout") {
@@ -213,12 +222,12 @@ export function AppHome(): React.JSX.Element {
           });
         }
       } else {
-        if (selectedLayer && selectedLayer.kind !== "group") {
-          // Convert the currently selected active layer into this effect
+        if (selectedLayer && isEmptyLayer) {
+          // Convert the empty placeholder layer into this effect
           targetLayerId = selectedLayer.id;
           context.dispatch({ type: "layers.rename", layerId: targetLayerId, name });
         } else {
-          // No active layer (or a group is selected), so spawn a new layer
+          // Not an empty layer (e.g. it's an image or existing effect), so spawn a NEW layer
           context.dispatch({
             type: "layers.add",
             layer: {
@@ -255,7 +264,7 @@ export function AppHome(): React.JSX.Element {
       return new Promise<void>(async (resolve, reject) => {
         try {
           const { createToolcraftPngExportCanvas } = await import("@/toolcraft/runtime/export");
-          const { generatePreview } = await import("@/lib/generation/engine");
+          const { renderRecipe } = await import("@/lib/generation/engine");
           const { createRecipeFromState } = await import("../app/ForgeCanvas");
 
           const state = context.state;
@@ -270,17 +279,21 @@ export function AppHome(): React.JSX.Element {
           const imagesPromises = state.mediaAssets
             .filter((asset: any) => asset.sourceTarget === "images" || !asset.sourceTarget)
             .map((asset: any) => {
-              return new Promise<{ id: string, img: HTMLImageElement }>((resolveImg, rejectImg) => {
+              return new Promise<{ id: string, img: HTMLImageElement } | null>((resolveImg) => {
                 const img = new Image();
                 img.onload = () => resolveImg({ id: asset.layerId || asset.id, img });
-                img.onerror = rejectImg;
+                img.onerror = () => resolveImg(null);
                 img.src = asset.dataUrl;
               });
             });
 
           const imagesData = await Promise.all(imagesPromises);
           const imageMap = new Map<string, HTMLImageElement>();
-          imagesData.forEach((d: any) => imageMap.set(d.id, d.img));
+          imagesData.forEach((d: any) => {
+            if (d) {
+              imageMap.set(d.id, d.img);
+            }
+          });
 
           const recipe = createRecipeFromState(state, store, imageMap);
 
@@ -289,9 +302,7 @@ export function AppHome(): React.JSX.Element {
             resolution,
             state,
             render: (renderContext) => {
-              const tempCanvas = document.createElement("canvas");
-              generatePreview(recipe, tempCanvas);
-              renderContext.context.drawImage(tempCanvas, 0, 0, renderContext.cssWidth, renderContext.cssHeight);
+              renderRecipe(recipe, renderContext.context, renderContext.cssWidth, renderContext.cssHeight);
             }
           });
 

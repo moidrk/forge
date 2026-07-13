@@ -10,3 +10,11 @@
   
 ## Toolcraft Validation Exclusion  
 The strict Toolcraft template acceptance and performance meta-tests are explicitly excluded and skipped for this workspace to allow for custom UI and engine building. 
+
+## Agentic Quality Assurance
+Agents MUST perform rigorous side-effect analysis before declaring a feature complete. Do not tunnel-vision on the "happy path" of the new feature. You must explicitly trace how new code interacts with:
+- Pre-existing components and UI panels
+- Toolcraft's native media upload and state flow
+- Edge cases (e.g. what happens if a user applies an action to an unexpected layer type)
+
+**Rule:** Never rely on the user to serve as the QA tester for logic conflicts or integration bugs. Prove that the new feature behaves correctly alongside existing functionality before returning.

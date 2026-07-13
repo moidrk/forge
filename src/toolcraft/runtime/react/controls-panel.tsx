@@ -2771,10 +2771,10 @@ export function ControlsPanel({
                     multiple={control.multiple}
                     key={id}
                     onClear={
-                      previewMediaAsset
+                      previewMediaIds.length > 0
                         ? () => {
                             dispatchCommand({
-                              mediaId: previewMediaAsset.id,
+                              mediaIds: previewMediaIds,
                               type: "media.delete",
                             });
                           }

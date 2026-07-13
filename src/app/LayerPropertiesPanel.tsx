@@ -153,7 +153,7 @@ export function LayerPropertiesPanel() {
         <>
           <Select
             name="Style"
-            options={[ { label: "Dots", value: "dots" }, { label: "Lines", value: "lines" } ]}
+            options={[ { label: "Dots", value: "dots" }, { label: "Lines", value: "lines" }, { label: "Crosshatch", value: "crosshatch" } ]}
             value={props.halftoneStyle || "dots"}
             onValueChange={(val) => updateProp("halftoneStyle", val)}
           />
