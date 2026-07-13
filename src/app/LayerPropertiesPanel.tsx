@@ -168,7 +168,7 @@ export function LayerPropertiesPanel() {
           <Slider name="Layout Seed" value={props.layoutSeed ?? 446331} min={0} max={1000000} step={1} onValueChange={(val) => updateProp("layoutSeed", val)} />
           <Select
             name="Grid Style"
-            options={[ { label: "Asymmetrical", value: "asymmetrical" }, { label: "Symmetrical", value: "symmetrical" } ]}
+            options={[ { label: "Asymmetrical", value: "asymmetrical" }, { label: "Symmetrical", value: "symmetrical" }, { label: "Brutalist (Overlap)", value: "brutalist" } ]}
             value={props.layoutStyle || "asymmetrical"}
             onValueChange={(val) => updateProp("layoutStyle", val)}
           />

@@ -9,6 +9,140 @@ const randomHexColor = () => "#" + Math.floor(Math.random() * 16777215).toString
 const randomRange = (min: number, max: number) => min + Math.random() * (max - min);
 const randomInt = (min: number, max: number) => Math.floor(randomRange(min, max + 1));
 
+export function performGodModeShuffle(state: any, dispatch: any) {
+  const storeStr = state.values.layerPropertiesStore || "{}";
+  const store = JSON.parse(storeStr);
+  
+  const blendModes = ["source-over", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "luminosity"];
+  const halftoneStyles = ["dots", "lines", "crosshatch"];
+  const shaderTypes = ["MeshGradient", "LiquidMetal", "Metaballs", "GodRays", "NeuroNoise", "GrainGradient", "GemSmoke", "Warp", "Water"];
+  const techStyles = ["cyberpunk", "minimalist", "blueprint"];
+
+  const blocks: any[][] = [];
+  const blockIndexMap = new Map<string, number>();
+  
+  for (const layer of state.layers) {
+     if (!layer.parentGroupId) {
+        blocks.push([layer]);
+        blockIndexMap.set(layer.id, blocks.length - 1);
+     } else {
+        const rootId = layer.parentGroupId;
+        const blockIdx = blockIndexMap.get(rootId);
+        if (blockIdx !== undefined) {
+           blocks[blockIdx].push(layer);
+        } else {
+           blocks.push([layer]); // Fallback
+        }
+     }
+  }
+
+  const unlockedBlocks: any[][] = [];
+  const lockedBlockIndices: number[] = [];
+  
+  blocks.forEach((block, index) => {
+     const rootLayer = block[0];
+     if (store[rootLayer.id]?.locked === true) {
+        lockedBlockIndices.push(index);
+     } else {
+        unlockedBlocks.push(block);
+     }
+  });
+
+  // 1. Deep Randomization
+  for (const layer of state.layers) {
+    const props = store[layer.id] || { type: "image" };
+    
+    if (props.locked === true) {
+      continue; // Respect the lock!
+    }
+
+    if (props.type === "shader") {
+      props.shaderType = shaderTypes[randomInt(0, shaderTypes.length - 1)];
+      props.shaderWarpImage = Math.random() > 0.5;
+      props.shaderColor1 = { hex: randomHexColor() };
+      props.shaderColor2 = { hex: randomHexColor() };
+      props.shaderColor3 = { hex: randomHexColor() };
+      props.shaderColor4 = { hex: randomHexColor() };
+    } else if (props.type === "techOverlay") {
+      props.techStyle = techStyles[randomInt(0, techStyles.length - 1)];
+      props.techColor = { hex: randomHexColor() };
+      props.techDensity = randomRange(0.1, 0.8);
+      props.showBarcodes = Math.random() > 0.3;
+    } else if (props.type === "glitch") {
+      props.glitchIntensity = randomRange(0, 1);
+      props.glitchRGB = Math.random() > 0.5;
+    } else if (props.type === "halftone") {
+      props.halftoneColor = { hex: randomHexColor() };
+      props.halftoneSize = randomRange(1, 10);
+      props.halftoneSpacing = randomRange(2, 15);
+      props.halftoneAngle = randomRange(0, 180);
+      props.halftoneStyle = halftoneStyles[randomInt(0, 2)];
+    } else if (props.type === "imageLayout") {
+      props.layoutSeed = randomInt(0, 1000000);
+      props.layoutStyle = Math.random() > 0.4 ? "brutalist" : "asymmetrical"; // heavily bias towards Brutalist / overlap now
+      props.columns = randomInt(2, 6);
+      props.rows = randomInt(2, 6);
+      props.gap = randomInt(0, 30);
+    } else if (props.type === "image" || props.type === undefined || props.type === "solid") {
+      props.type = props.type || "image";
+      
+      // Extreme collage transforms!
+      props.scale = randomRange(0.2, 4.0);
+      
+      // We don't have exact canvas bounds here, so we guess a large range.
+      props.transformX = randomRange(-800, 800);
+      props.transformY = randomRange(-800, 800);
+      
+      if (Math.random() > 0.7) {
+        props.imageShaderFilter = shaderTypes[randomInt(0, shaderTypes.length - 1)];
+      } else {
+        props.imageShaderFilter = "none";
+      }
+      
+      if (props.type === "solid" || !state.mediaAssets.find((a:any) => a.layerId === layer.id)) {
+        props.fillColor = { hex: randomHexColor() };
+      }
+    }
+    
+    props.blendMode = blendModes[randomInt(0, blendModes.length - 1)];
+    props.opacity = randomRange(0.4, 1);
+    
+    store[layer.id] = props;
+  }
+
+  dispatch({
+    type: "controls.setValue",
+    target: "layerPropertiesStore",
+    value: JSON.stringify(store)
+  });
+  
+  if (state.values.seed !== undefined) {
+    dispatch({ type: "controls.setValue", target: "seed", value: randomInt(0, 1000000) });
+  }
+
+  // 2. Scramble Z-Index
+  if (unlockedBlocks.length > 1) {
+     unlockedBlocks.sort(() => Math.random() - 0.5);
+     
+     const newBlocks: any[][] = [];
+     let unlockedIdx = 0;
+     for (let i = 0; i < blocks.length; i++) {
+        if (lockedBlockIndices.includes(i)) {
+           newBlocks.push(blocks[i]);
+        } else {
+           newBlocks.push(unlockedBlocks[unlockedIdx++]);
+        }
+     }
+     
+     const newLayers = newBlocks.flat();
+     dispatch({
+        type: "layers.reorder",
+        layers: newLayers,
+        selectedLayerId: state.selectedLayerId
+     });
+  }
+}
+
 export function AppHome(): React.JSX.Element {
   const handlePanelAction = React.useCallback(async (context: any) => {
     const actionVal = context.action.value;
@@ -116,68 +250,7 @@ export function AppHome(): React.JSX.Element {
       }, 10);
       
     } else if (actionVal === "shuffle") {
-      const storeStr = context.state.values.layerPropertiesStore || "{}";
-      const store = JSON.parse(storeStr);
-      
-      const blendModes = ["source-over", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "luminosity"];
-      const halftoneStyles = ["dots", "lines", "crosshatch"];
-      const shaderTypes = ["MeshGradient", "LiquidMetal", "Metaballs", "GodRays", "NeuroNoise", "GrainGradient", "GemSmoke", "Warp"];
-      const techStyles = ["cyberpunk", "minimalist", "blueprint"];
-
-      // Update all layer properties
-      for (const layer of context.state.layers) {
-        const props = store[layer.id] || { type: "image" };
-        
-        if (props.type === "shader") {
-          props.shaderType = shaderTypes[randomInt(0, shaderTypes.length - 1)];
-          props.shaderWarpImage = Math.random() > 0.5;
-          props.shaderColor1 = { hex: randomHexColor() };
-          props.shaderColor2 = { hex: randomHexColor() };
-          props.shaderColor3 = { hex: randomHexColor() };
-          props.shaderColor4 = { hex: randomHexColor() };
-        } else if (props.type === "techOverlay") {
-          props.techStyle = techStyles[randomInt(0, techStyles.length - 1)];
-          props.techColor = { hex: randomHexColor() };
-          props.techDensity = randomRange(0.1, 0.8);
-          props.showBarcodes = Math.random() > 0.3;
-        } else if (props.type === "glitch") {
-          props.glitchIntensity = randomRange(0, 1);
-          props.glitchRGB = Math.random() > 0.5;
-        } else if (props.type === "halftone") {
-          props.halftoneColor = { hex: randomHexColor() };
-          props.halftoneSize = randomRange(1, 10);
-          props.halftoneSpacing = randomRange(2, 15);
-          props.halftoneAngle = randomRange(0, 180);
-          props.halftoneStyle = halftoneStyles[randomInt(0, 2)];
-        } else if (props.type === "imageLayout") {
-          props.layoutSeed = randomInt(0, 1000000);
-          props.layoutStyle = Math.random() > 0.5 ? "asymmetrical" : "symmetrical";
-          props.columns = randomInt(2, 6);
-          props.rows = randomInt(2, 6);
-          props.gap = randomInt(0, 30);
-        } else if (props.type === "image" || props.type === undefined) {
-          props.type = "image";
-        }
-        
-        // Universal blend properties
-        props.blendMode = blendModes[randomInt(0, blendModes.length - 1)];
-        props.opacity = randomRange(0.3, 1);
-        
-        store[layer.id] = props;
-      }
-
-      context.dispatch({
-        type: "controls.setValue",
-        target: "layerPropertiesStore",
-        value: JSON.stringify(store)
-      });
-      
-      // Shuffle some global controls that we kept in general (if any remain)
-      // We removed most of them, maybe just seed?
-      if (context.state.values.seed !== undefined) {
-        context.dispatch({ type: "controls.setValue", target: "seed", value: randomInt(0, 1000000) });
-      }
-
+      performGodModeShuffle(context.state, context.dispatch);
     } else if (actionVal === "Export PNG") {
       return new Promise<void>(async (resolve, reject) => {
         try {

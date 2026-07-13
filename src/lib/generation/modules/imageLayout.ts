@@ -59,17 +59,38 @@ export function renderImageLayoutLayer(
   ctx.globalAlpha = opacity;
   ctx.globalCompositeOperation = blendMode as GlobalCompositeOperation;
 
-  let cells = layoutStyle === 'asymmetrical' 
-    ? generateGrid({ x: 0, y: 0, w: width, h: height }, columns, rows, rng)
-    : generateSymmetricalGrid({ x: 0, y: 0, w: width, h: height }, columns, rows);
+  let cells = layoutStyle === 'symmetrical' 
+    ? generateSymmetricalGrid({ x: 0, y: 0, w: width, h: height }, columns, rows)
+    : generateGrid({ x: 0, y: 0, w: width, h: height }, columns, rows, rng);
 
-  // Apply gap
-  cells = cells.map(c => ({
-    x: c.x + gap / 2,
-    y: c.y + gap / 2,
-    w: c.w - gap,
-    h: c.h - gap
-  }));
+  if (layoutStyle === 'brutalist') {
+    // Brutalist means asymmetrical but overlapping wildly
+    cells = cells.map(c => {
+      const overlapFactorX = 1.2 + rng.random() * 0.8; // 20% to 100% wider
+      const overlapFactorY = 1.2 + rng.random() * 0.8; // 20% to 100% taller
+      const nw = c.w * overlapFactorX;
+      const nh = c.h * overlapFactorY;
+      // Randomly shift center
+      const offsetX = (rng.random() - 0.5) * c.w * 0.5;
+      const offsetY = (rng.random() - 0.5) * c.h * 0.5;
+      return {
+        x: c.x - (nw - c.w) / 2 + offsetX,
+        y: c.y - (nh - c.h) / 2 + offsetY,
+        w: nw,
+        h: nh
+      };
+    });
+  }
+
+  // Apply gap (gap only makes sense for non-brutalist really, but we'll apply it)
+  if (layoutStyle !== 'brutalist') {
+    cells = cells.map(c => ({
+      x: c.x + gap / 2,
+      y: c.y + gap / 2,
+      w: c.w - gap,
+      h: c.h - gap
+    }));
+  }
 
   // Assign images to cells deterministically based on seed
   cells.forEach((cell, i) => {
@@ -131,16 +152,40 @@ export function generateImageLayoutLayerSVG(
   params: Record<string, any>
 ): string {
   const { columns = 3, rows = 3, gap = 10, opacity = 1.0, layoutStyle = 'asymmetrical' } = params;
-  let cells = layoutStyle === 'asymmetrical' 
-    ? generateGrid({ x: 0, y: 0, w: width, h: height }, columns, rows, rng)
-    : generateSymmetricalGrid({ x: 0, y: 0, w: width, h: height }, columns, rows);
+  let cells = layoutStyle === 'symmetrical' 
+    ? generateSymmetricalGrid({ x: 0, y: 0, w: width, h: height }, columns, rows)
+    : generateGrid({ x: 0, y: 0, w: width, h: height }, columns, rows, rng);
+
+  if (layoutStyle === 'brutalist') {
+    cells = cells.map(c => {
+      const overlapFactorX = 1.2 + rng.random() * 0.8;
+      const overlapFactorY = 1.2 + rng.random() * 0.8;
+      const nw = c.w * overlapFactorX;
+      const nh = c.h * overlapFactorY;
+      const offsetX = (rng.random() - 0.5) * c.w * 0.5;
+      const offsetY = (rng.random() - 0.5) * c.h * 0.5;
+      return {
+        x: c.x - (nw - c.w) / 2 + offsetX,
+        y: c.y - (nh - c.h) / 2 + offsetY,
+        w: nw,
+        h: nh
+      };
+    });
+  }
 
   let svg = `<g opacity="${opacity}">`;
   cells.forEach(c => {
-    const cx = c.x + gap / 2;
-    const cy = c.y + gap / 2;
-    const cw = c.w - gap;
-    const ch = c.h - gap;
+    let cx = c.x;
+    let cy = c.y;
+    let cw = c.w;
+    let ch = c.h;
+    
+    if (layoutStyle !== 'brutalist') {
+      cx += gap / 2;
+      cy += gap / 2;
+      cw -= gap;
+      ch -= gap;
+    }
     const fill = `hsl(${Math.floor(rng.random() * 360)}, 10%, 20%)`;
     svg += `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" fill="${fill}" />`;
     svg += `\n<text x="${cx + cw/2}" y="${cy + ch/2}" fill="#fff" font-family="sans-serif" font-size="12" text-anchor="middle">Image Placeholder</text>`;

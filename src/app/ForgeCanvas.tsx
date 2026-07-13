@@ -41,6 +41,31 @@ export default function ForgeCanvas() {
     }
   }, [dispatch, state.layers.length, state.values.layerPropertiesStore]);
 
+  const stateRef = React.useRef(state);
+  const dispatchRef = React.useRef(dispatch);
+  React.useEffect(() => {
+    stateRef.current = state;
+    dispatchRef.current = dispatch;
+  }, [state, dispatch]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return; // Let user type spaces in text inputs
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        import("../routes/index").then(mod => {
+          mod.performGodModeShuffle(stateRef.current, dispatchRef.current);
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
+  }, []);
+
   // Use a ref to track if we've rendered the initial frame
   const containerRef = React.useRef<HTMLDivElement>(null);
   const dragStateRef = React.useRef<{ layerId: string, mode: "move" | "scale", startX: number, startY: number, currentX: number, currentY: number, initialScale?: number, initialDistance?: number } | null>(null);
