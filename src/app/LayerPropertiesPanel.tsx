@@ -75,7 +75,8 @@ export function LayerPropertiesPanel() {
   const props = layerProps || { imageBlendMode: "source-over", imageOpacity: 1 };
   const currentType = props.type || "image";
 
-  const isToolcraftImage = (selectedLayer as any).type === "image" && (selectedLayer as any).params?.image;
+  const hasMediaAsset = state.mediaAssets.some((a: any) => a.layerId === layerId || a.id === layerId);
+  const isToolcraftImage = ((selectedLayer as any).type === "image" && (selectedLayer as any).params?.image) || hasMediaAsset;
   const isCustomEffect = layerProps?.type && layerProps.type !== "image";
   const isPending = !isCustomEffect && !isToolcraftImage && selectedLayer.kind !== "group";
 
