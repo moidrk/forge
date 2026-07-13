@@ -30,7 +30,14 @@ export const appSchema = defineToolcraft({
                 { value: "addTechOverlay", label: "Add Tech Overlay", icon: "wand-sparkles" },
                 { value: "addGlitch", label: "Add Glitch", icon: "wand-sparkles" },
                 { value: "addHalftone", label: "Add Halftone", icon: "wand-sparkles" },
-                { value: "addImageLayout", label: "Add Grid Layout", icon: "wand-sparkles" }
+                { value: "addImageLayout", label: "Add Grid Layout", icon: "wand-sparkles" },
+                { value: "addBloom", label: "Add Bloom", icon: "wand-sparkles" },
+                { value: "addGrain", label: "Add Film Grain", icon: "wand-sparkles" },
+                { value: "addPixelate", label: "Add Pixelate", icon: "wand-sparkles" },
+                { value: "addDither", label: "Add Dither", icon: "wand-sparkles" },
+                { value: "addDataGrid", label: "Add Data Grid", icon: "wand-sparkles" },
+                { value: "addDataCascade", label: "Add Data Cascade", icon: "wand-sparkles" },
+                { value: "addAscii", label: "Add ASCII", icon: "wand-sparkles" }
               ],
             },
             shuffle: {

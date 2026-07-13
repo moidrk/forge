@@ -6,6 +6,14 @@ import { renderTechOverlayLayer, generateTechOverlayLayerSVG } from './modules/t
 import { renderGlitchLayer, generateGlitchLayerSVG } from './modules/glitch';
 import { renderImageLayoutLayer, generateImageLayoutLayerSVG } from './modules/imageLayout';
 
+import { renderBloomLayer } from './modules/bloom';
+import { renderGrainLayer } from './modules/grain';
+import { renderPixelateLayer } from './modules/pixelate';
+import { renderDitherLayer } from './modules/dither';
+import { renderDataGridLayer } from './modules/dataGrid';
+import { renderDataCascadeLayer } from './modules/dataCascade';
+import { renderAsciiLayer } from './modules/ascii';
+
 export function getImageLayerBounds(width: number, height: number, img: HTMLImageElement, params: any) {
   const scale = params.scale ?? 1.0;
   const imgRatio = img.width / img.height;
@@ -140,6 +148,20 @@ export function renderRecipe(
       renderGlitchLayer(ctx, recipe.width, recipe.height, rng, layer.params);
     } else if (layer.type === "imageLayout") {
       renderImageLayoutLayer(ctx, recipe.width, recipe.height, new RNG(layer.params.layoutSeed ?? recipe.seed), layer.params);
+    } else if (layer.type === "bloom") {
+      renderBloomLayer(ctx, recipe.width, recipe.height, rng, layer.params);
+    } else if (layer.type === "grain") {
+      renderGrainLayer(ctx, recipe.width, recipe.height, rng, layer.params);
+    } else if (layer.type === "pixelate") {
+      renderPixelateLayer(ctx, recipe.width, recipe.height, rng, layer.params);
+    } else if (layer.type === "dither") {
+      renderDitherLayer(ctx, recipe.width, recipe.height, rng, layer.params);
+    } else if (layer.type === "dataGrid") {
+      renderDataGridLayer(ctx, recipe.width, recipe.height, rng, layer.params);
+    } else if (layer.type === "dataCascade") {
+      renderDataCascadeLayer(ctx, recipe.width, recipe.height, rng, layer.params);
+    } else if (layer.type === "ascii") {
+      renderAsciiLayer(ctx, recipe.width, recipe.height, rng, layer.params);
     }
 
     ctx.restore();

@@ -147,20 +147,34 @@ export function AppHome(): React.JSX.Element {
   const handlePanelAction = React.useCallback(async (context: any) => {
     const actionVal = context.action.value;
 
-    if (actionVal === "addShader" || actionVal === "addTechOverlay" || actionVal === "addGlitch" || actionVal === "addHalftone" || actionVal === "addImageLayout") {
+    if (["addShader", "addTechOverlay", "addGlitch", "addHalftone", "addImageLayout", "addBloom", "addGrain", "addPixelate", "addDither", "addDataGrid", "addDataCascade", "addAscii"].includes(actionVal)) {
       const typeMap: Record<string, string> = {
         addShader: "shader",
         addTechOverlay: "techOverlay",
         addGlitch: "glitch",
         addHalftone: "halftone",
-        addImageLayout: "imageLayout"
+        addImageLayout: "imageLayout",
+        addBloom: "bloom",
+        addGrain: "grain",
+        addPixelate: "pixelate",
+        addDither: "dither",
+        addDataGrid: "dataGrid",
+        addDataCascade: "dataCascade",
+        addAscii: "ascii"
       };
       const nameMap: Record<string, string> = {
         addShader: "Shader Background",
         addTechOverlay: "Tech Overlay",
-        addGlitch: "Glitch FX",
+        addGlitch: "Glitch Effect",
         addHalftone: "Halftone",
-        addImageLayout: "Grid Layout"
+        addImageLayout: "Grid Layout",
+        addBloom: "Bloom Filter",
+        addGrain: "Film Grain",
+        addPixelate: "Pixelate Filter",
+        addDither: "Dither Filter",
+        addDataGrid: "Data Grid",
+        addDataCascade: "Data Cascade",
+        addAscii: "ASCII Filter"
       };
       const type = typeMap[actionVal];
       const name = nameMap[actionVal];

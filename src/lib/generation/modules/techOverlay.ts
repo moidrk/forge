@@ -57,6 +57,85 @@ export function renderTechOverlayLayer(ctx: CanvasRenderingContext2D, width: num
     ctx.moveTo(x - 15, y); ctx.lineTo(x + 15, y);
     ctx.moveTo(x, y - 15); ctx.lineTo(x, y + 15);
     ctx.stroke();
+  } else if (style === 'tracking') {
+    // AI Bounding Boxes / Object Detection
+    const numBoxes = Math.floor(density * 15);
+    const boxRng = new RNG(rng.seed + 10);
+    ctx.lineWidth = 1;
+    
+    for (let i = 0; i < numBoxes; i++) {
+      const bw = boxRng.range(40, 200);
+      const bh = boxRng.range(40, 200);
+      const bx = boxRng.range(0, width - bw);
+      const by = boxRng.range(0, height - bh);
+      
+      // Draw Box Corners
+      const l = 10; // corner length
+      ctx.beginPath();
+      ctx.moveTo(bx, by + l); ctx.lineTo(bx, by); ctx.lineTo(bx + l, by);
+      ctx.moveTo(bx + bw - l, by); ctx.lineTo(bx + bw, by); ctx.lineTo(bx + bw, by + l);
+      ctx.moveTo(bx, by + bh - l); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + l, by + bh);
+      ctx.moveTo(bx + bw - l, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by + bh - l);
+      ctx.stroke();
+
+      // Draw faint box
+      ctx.globalAlpha = 0.1;
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.globalAlpha = 1.0;
+
+      // Draw label
+      const prefix = ["P", "C", "S", "NODE"][boxRng.rangeInt(0, 3)];
+      const id = boxRng.rangeInt(1, 99);
+      const data1 = boxRng.range(0, 99).toFixed(1);
+      const data2 = boxRng.range(0, 99).toFixed(1);
+      const label = `[${prefix}${id} ${data1},${data2}]`;
+      
+      ctx.fillStyle = color;
+      ctx.fillRect(bx, by - 14, ctx.measureText(label).width + 8, 14);
+      
+      ctx.fillStyle = '#000000'; // Inverse for text
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(label, bx + 4, by - 12);
+      ctx.fillStyle = color; // restore
+      
+      // Maybe connect a crosshair in the center
+      const cx = bx + bw/2;
+      const cy = by + bh/2;
+      ctx.beginPath();
+      ctx.moveTo(cx - 5, cy); ctx.lineTo(cx + 5, cy);
+      ctx.moveTo(cx, cy - 5); ctx.lineTo(cx, cy + 5);
+      ctx.stroke();
+    }
+  } else if (style === 'topography') {
+    // Fake topography by drawing layered distorted concentric shapes
+    const numCenters = Math.floor(density * 5) + 1;
+    const topoRng = new RNG(rng.seed + 10);
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i < numCenters; i++) {
+      const cx = topoRng.range(0, width);
+      const cy = topoRng.range(0, height);
+      const maxR = topoRng.range(100, 600);
+      const step = topoRng.range(10, 30);
+      
+      const seedPhase = topoRng.range(0, 100);
+
+      for (let r = step; r < maxR; r += step) {
+        ctx.beginPath();
+        for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+          // Simple noise distortion based on angle and radius
+          const noise = Math.sin(a * 3 + seedPhase) * 10 + Math.cos(a * 5 + r * 0.05) * 5;
+          const dist = r + noise;
+          const x = cx + Math.cos(a) * dist;
+          const y = cy + Math.sin(a) * dist;
+          if (a === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
   } else {
     // Cyberpunk (Default)
     // 1. Draw edge rulers
@@ -181,6 +260,72 @@ export function generateTechOverlayLayerSVG(width: number, height: number, rng: 
     const y = height / 2;
     path += `M ${x - 15} ${y} L ${x + 15} ${y} M ${x} ${y - 15} L ${x} ${y + 15} `;
     svg += `<path d="${path}" fill="none" stroke-width="1.5" />\n`;
+  } else if (style === 'tracking') {
+    // Generate AI tracking SVG
+    const numBoxes = Math.floor(density * 15);
+    const boxRng = new RNG(rng.seed + 10);
+    let path = "";
+    let rects = "";
+    let labels = "";
+    
+    for (let i = 0; i < numBoxes; i++) {
+      const bw = boxRng.range(40, 200);
+      const bh = boxRng.range(40, 200);
+      const bx = boxRng.range(0, width - bw);
+      const by = boxRng.range(0, height - bh);
+      
+      const l = 10;
+      path += `M ${bx} ${by + l} L ${bx} ${by} L ${bx + l} ${by} `;
+      path += `M ${bx + bw - l} ${by} L ${bx + bw} ${by} L ${bx + bw} ${by + l} `;
+      path += `M ${bx} ${by + bh - l} L ${bx} ${by + bh} L ${bx + l} ${by + bh} `;
+      path += `M ${bx + bw - l} ${by + bh} L ${bx + bw} ${by + bh} L ${bx + bw} ${by + bh - l} `;
+      
+      rects += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="${color}" opacity="0.1" />\n`;
+
+      const prefix = ["P", "C", "S", "NODE"][boxRng.rangeInt(0, 3)];
+      const id = boxRng.rangeInt(1, 99);
+      const label = `[${prefix}${id} ${boxRng.range(0, 99).toFixed(1)},${boxRng.range(0, 99).toFixed(1)}]`;
+      
+      const labelW = label.length * 6 + 8;
+      rects += `<rect x="${bx}" y="${by - 14}" width="${labelW}" height="14" fill="${color}" />\n`;
+      labels += `<text x="${bx + 4}" y="${by - 7}" fill="#000000" stroke="none" text-anchor="start">${label}</text>\n`;
+
+      const cx = bx + bw/2;
+      const cy = by + bh/2;
+      path += `M ${cx - 5} ${cy} L ${cx + 5} ${cy} M ${cx} ${cy - 5} L ${cx} ${cy + 5} `;
+    }
+    
+    svg += rects;
+    svg += `<path d="${path}" fill="none" stroke-width="1" />\n`;
+    svg += labels;
+  } else if (style === 'topography') {
+    // Generate Topography SVG
+    const numCenters = Math.floor(density * 5) + 1;
+    const topoRng = new RNG(rng.seed + 10);
+    let path = "";
+
+    for (let i = 0; i < numCenters; i++) {
+      const cx = topoRng.range(0, width);
+      const cy = topoRng.range(0, height);
+      const maxR = topoRng.range(100, 600);
+      const step = topoRng.range(10, 30);
+      const seedPhase = topoRng.range(0, 100);
+
+      for (let r = step; r < maxR; r += step) {
+        let loop = "";
+        for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+          const noise = Math.sin(a * 3 + seedPhase) * 10 + Math.cos(a * 5 + r * 0.05) * 5;
+          const dist = r + noise;
+          const x = cx + Math.cos(a) * dist;
+          const y = cy + Math.sin(a) * dist;
+          if (a === 0) loop += `M ${x} ${y} `;
+          else loop += `L ${x} ${y} `;
+        }
+        loop += "Z ";
+        path += loop;
+      }
+    }
+    svg += `<path d="${path}" fill="none" stroke-width="1" />\n`;
   } else {
     // Cyberpunk
     // 1. Draw edge rulers
