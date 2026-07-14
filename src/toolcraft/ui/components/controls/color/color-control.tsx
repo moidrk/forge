@@ -345,6 +345,7 @@ export function ColorValueControl({
   );
   const [previewColor, setPreviewColor] = React.useState(color);
   const liveHistoryGroupRef = React.useRef<string | null>(null);
+  const isTransparent = color === "transparent" || color === "#00000000";
 
   React.useEffect(() => {
     setDraftColor(getHexDraftValue(color, showHash));
@@ -407,10 +408,10 @@ export function ColorValueControl({
       >
         <ColorPickerPopover
           label={label}
-          pickerValue={getNativeColorPickerValue(previewColor)}
+          pickerValue={isTransparent ? "#000000" : getNativeColorPickerValue(previewColor)}
           showOpacity={Boolean(children)}
           size={size}
-          swatchColor={getSwatchColorValue(previewColor)}
+          swatchColor={isTransparent ? "transparent" : getSwatchColorValue(previewColor)}
           onColorChange={(nextColor) => commitColor(nextColor, getLiveHistoryMeta())}
           onCommit={handleDraftBlur}
         />

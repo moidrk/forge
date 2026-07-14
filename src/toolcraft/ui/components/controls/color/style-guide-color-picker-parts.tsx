@@ -702,42 +702,7 @@ export function ColorFooter({
             onColorValueChange={onColorValueChange}
             onColorValueFocus={onColorValueFocus}
             showOpacity={showOpacity}
-          />
         )}
-        <div className="flex shrink-0 gap-1 ml-1">
-          <button
-            type="button"
-            className="flex items-center justify-center h-6 w-6 rounded border border-[color:color-mix(in_oklab,var(--border)_20%,transparent)] bg-[color:color-mix(in_oklab,var(--input)_5%,transparent)] hover:bg-[color:color-mix(in_oklab,var(--border)_10%,transparent)] text-neutral-400 hover:text-[color:var(--foreground)] transition-colors"
-            onClick={async () => {
-              if (!(window as any).EyeDropper) {
-                alert("Your browser does not support the EyeDropper API");
-                return;
-              }
-              try {
-                const ed = new (window as any).EyeDropper();
-                const res = await ed.open();
-                if (res?.sRGBHex) {
-                  onColorValueChange(res.sRGBHex);
-                  onColorValueBlur();
-                }
-              } catch(e) {}
-            }}
-            title="Eyedropper Tool"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/></svg>
-          </button>
-          <button
-            type="button"
-            className="flex items-center justify-center h-6 w-6 rounded border border-[color:color-mix(in_oklab,var(--border)_20%,transparent)] bg-[color:color-mix(in_oklab,var(--input)_5%,transparent)] hover:bg-[color:color-mix(in_oklab,var(--border)_10%,transparent)] text-neutral-400 hover:text-red-400 transition-colors"
-            onClick={() => {
-              onColorValueChange("#ffffff00");
-              onColorValueBlur();
-            }}
-            title="Transparent"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-          </button>
-        </div>
       </div>
     </div>
   );

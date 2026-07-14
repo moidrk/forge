@@ -144,24 +144,39 @@ export function renderRecipe(
       renderTechOverlayLayer(ctx, recipe.width, recipe.height, rng, layer.params);
     } else if (layer.type === "halftone") {
       renderHalftoneLayer(ctx, recipe.width, recipe.height, rng, layer.params);
-    } else if (layer.type === "glitch") {
-      renderGlitchLayer(ctx, recipe.width, recipe.height, rng, layer.params);
     } else if (layer.type === "imageLayout") {
       renderImageLayoutLayer(ctx, recipe.width, recipe.height, new RNG(layer.params.layoutSeed ?? recipe.seed), layer.params);
-    } else if (layer.type === "bloom") {
-      renderBloomLayer(ctx, recipe.width, recipe.height, rng, layer.params);
-    } else if (layer.type === "grain") {
-      renderGrainLayer(ctx, recipe.width, recipe.height, rng, layer.params);
-    } else if (layer.type === "pixelate") {
-      renderPixelateLayer(ctx, recipe.width, recipe.height, rng, layer.params);
-    } else if (layer.type === "dither") {
-      renderDitherLayer(ctx, recipe.width, recipe.height, rng, layer.params);
-    } else if (layer.type === "dataGrid") {
-      renderDataGridLayer(ctx, recipe.width, recipe.height, rng, layer.params);
-    } else if (layer.type === "dataCascade") {
-      renderDataCascadeLayer(ctx, recipe.width, recipe.height, rng, layer.params);
-    } else if (layer.type === "ascii") {
-      renderAsciiLayer(ctx, recipe.width, recipe.height, rng, layer.params);
+    } else {
+      // Pixel-based effects that need unscaled physical coordinates
+      ctx.save();
+      ctx.resetTransform();
+      const pWidth = recipe.width * scaleX;
+      const pHeight = recipe.height * scaleY;
+      const pParams = { ...layer.params };
+
+      if (layer.type === "bloom") {
+        pParams.bloomBlur = (pParams.bloomBlur ?? 10) * scaleX;
+        renderBloomLayer(ctx, pWidth, pHeight, rng, pParams);
+      } else if (layer.type === "grain") {
+        renderGrainLayer(ctx, pWidth, pHeight, rng, pParams);
+      } else if (layer.type === "pixelate") {
+        pParams.pixelateSize = (pParams.pixelateSize ?? 10) * scaleX;
+        renderPixelateLayer(ctx, pWidth, pHeight, rng, pParams);
+      } else if (layer.type === "dither") {
+        renderDitherLayer(ctx, pWidth, pHeight, rng, pParams);
+      } else if (layer.type === "dataGrid") {
+        // Not strictly pixel-based but uses physical coordinates safely
+        renderDataGridLayer(ctx, pWidth, pHeight, rng, pParams);
+      } else if (layer.type === "dataCascade") {
+        pParams.fontSize = 14 * scaleX; // Pass scaled font size
+        renderDataCascadeLayer(ctx, pWidth, pHeight, rng, pParams);
+      } else if (layer.type === "ascii") {
+        pParams.asciiFontSize = (pParams.asciiFontSize ?? 10) * scaleX;
+        renderAsciiLayer(ctx, pWidth, pHeight, rng, pParams);
+      } else if (layer.type === "glitch") {
+        renderGlitchLayer(ctx, pWidth, pHeight, rng, pParams);
+      }
+      ctx.restore();
     }
 
     ctx.restore();

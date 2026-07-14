@@ -614,7 +614,7 @@ export function createRecipeFromState(state: any, store: Record<string, any>, im
 }
 
 export function ShaderRenderer({ type, colors, image, speed = 1, layerProps = {} }: { type: string, colors: string[], image?: string, speed?: number, layerProps?: any }) {
-  const commonProps = { style: { width: '100%', height: '100%' } as React.CSSProperties, speed };
+  const commonProps = { style: { width: '100%', height: '100%' } as React.CSSProperties, speed, gl: { preserveDrawingBuffer: true } };
   
   switch (type) {
     case "LiquidMetal":

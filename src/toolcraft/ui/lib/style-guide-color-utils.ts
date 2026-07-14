@@ -21,10 +21,10 @@ export function normalizeHexColor(hex: string | null | undefined): string | null
   if (!raw) return null;
 
   const hashless = raw.startsWith("#") ? raw.slice(1) : raw;
-  if (![3, 6].includes(hashless.length)) return null;
+  if (![3, 4, 6, 8].includes(hashless.length)) return null;
   if (!/^[\da-f]+$/i.test(hashless)) return null;
 
-  if (hashless.length === 3) {
+  if (hashless.length === 3 || hashless.length === 4) {
     const expanded = hashless
       .split("")
       .map((char) => `${char}${char}`)
