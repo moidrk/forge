@@ -56,6 +56,13 @@ export function performGodModeShuffle(state: any, dispatch: any) {
       continue; // Respect the lock!
     }
 
+    if (layer.kind === "group" && props.type !== "imageLayout") {
+      const allEffects = ["shader", "techOverlay", "glitch", "halftone", "bloom", "grain", "pixelate", "dither", "dataGrid", "dataCascade", "ascii", "solid"];
+      if (Math.random() > 0.3 || !props.type) {
+         props.type = allEffects[randomInt(0, allEffects.length - 1)];
+      }
+    }
+
     if (props.type === "shader") {
       props.shaderType = shaderTypes[randomInt(0, shaderTypes.length - 1)];
       props.shaderWarpImage = Math.random() > 0.5;
@@ -77,6 +84,31 @@ export function performGodModeShuffle(state: any, dispatch: any) {
       props.halftoneSpacing = randomRange(2, 15);
       props.halftoneAngle = randomRange(0, 180);
       props.halftoneStyle = halftoneStyles[randomInt(0, 2)];
+    } else if (props.type === "bloom") {
+      props.bloomIntensity = randomRange(0.2, 1.5);
+      props.bloomRadius = randomRange(5, 50);
+      props.bloomBlendMode = ["screen", "color-dodge", "lighter"][randomInt(0, 2)];
+    } else if (props.type === "grain") {
+      props.grainIntensity = randomRange(0.1, 0.8);
+      props.grainColor = Math.random() > 0.5;
+    } else if (props.type === "pixelate") {
+      props.pixelSize = Math.floor(randomRange(5, 40));
+    } else if (props.type === "dither") {
+      props.ditherAlgorithm = ["atkinson", "threshold"][randomInt(0, 1)];
+      props.ditherDark = { hex: randomHexColor() };
+      props.ditherLight = { hex: randomHexColor() };
+      props.ditherBias = randomRange(0.2, 0.8);
+    } else if (props.type === "dataGrid") {
+      props.gridDensity = Math.floor(randomRange(10, 50));
+      props.gridMaxRadius = randomRange(5, 20);
+      props.gridColor = { hex: randomHexColor() };
+    } else if (props.type === "dataCascade") {
+      props.cascadeDensity = randomRange(0.2, 0.8);
+      props.cascadeColor = { hex: randomHexColor() };
+    } else if (props.type === "ascii") {
+      props.asciiFontSize = Math.floor(randomRange(8, 24));
+      props.asciiColor = { hex: randomHexColor() };
+      props.asciiBackground = { hex: randomHexColor() };
     } else if (props.type === "imageLayout") {
       props.layoutSeed = randomInt(0, 1000000);
       props.layoutStyle = Math.random() > 0.4 ? "brutalist" : "asymmetrical"; // heavily bias towards Brutalist / overlap now
