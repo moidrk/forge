@@ -106,6 +106,7 @@ export function performGodModeShuffle(state: any, dispatch: any) {
       props.cascadeDensity = randomRange(0.2, 0.8);
       props.cascadeColor = { hex: randomHexColor() };
     } else if (props.type === "ascii") {
+      props.asciiFontFamily = ["monospace", "Courier New", "Consolas", "'Fira Code'", "Impact", "Arial", "'Times New Roman'"][randomInt(0, 6)];
       props.asciiFontSize = Math.floor(randomRange(8, 24));
       props.asciiColor = { hex: randomHexColor() };
       props.asciiBackground = { hex: randomHexColor() };

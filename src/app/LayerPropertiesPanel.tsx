@@ -317,6 +317,20 @@ export function LayerPropertiesPanel() {
 
       {currentType === "ascii" && (
         <>
+          <Select
+            name="Font"
+            options={[ 
+              { label: "Monospace", value: "monospace" }, 
+              { label: "Courier New", value: "Courier New" }, 
+              { label: "Consolas", value: "Consolas" }, 
+              { label: "Fira Code", value: "'Fira Code'" }, 
+              { label: "Impact", value: "Impact" }, 
+              { label: "Arial", value: "Arial" },
+              { label: "Times New Roman", value: "'Times New Roman'" }
+            ]}
+            value={props.asciiFontFamily || "monospace"}
+            onValueChange={(val) => updateProp("asciiFontFamily", val)}
+          />
           <Slider name="Font Size" value={props.asciiFontSize ?? 10} min={4} max={40} step={1} onValueChange={(val) => updateProp("asciiFontSize", val)} />
           <Color name="Text Color" hex={props.asciiColor?.hex || "#ffffff"} onValueChange={(val) => updateProp("asciiColor", val)} />
           <Color name="Background" hex={props.asciiBackground?.hex || "#000000"} onValueChange={(val) => updateProp("asciiBackground", val)} />

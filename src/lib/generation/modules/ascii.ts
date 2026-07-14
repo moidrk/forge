@@ -20,9 +20,11 @@ export function renderAsciiLayer(ctx: CanvasRenderingContext2D, width: number, h
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, width, height);
 
+  const fontFamily = params.asciiFontFamily || "monospace";
+
   // 3. Draw ASCII
   ctx.fillStyle = textColor;
-  ctx.font = `${fontSize}px monospace`;
+  ctx.font = `${fontSize}px ${fontFamily}`;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
 
