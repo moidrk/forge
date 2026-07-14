@@ -318,6 +318,19 @@ export function LayerPropertiesPanel() {
       {currentType === "ascii" && (
         <>
           <Select
+            name="Character Set"
+            options={[ 
+              { label: "Standard", value: "standard" }, 
+              { label: "Binary", value: "binary" }, 
+              { label: "Blocks", value: "blocks" }, 
+              { label: "Matrix", value: "matrix" }, 
+              { label: "Math", value: "math" }, 
+              { label: "Minimal", value: "minimal" }
+            ]}
+            value={props.asciiCharset || "standard"}
+            onValueChange={(val) => updateProp("asciiCharset", val)}
+          />
+          <Select
             name="Font"
             options={[ 
               { label: "Monospace", value: "monospace" }, 

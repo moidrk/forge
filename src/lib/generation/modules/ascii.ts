@@ -1,11 +1,20 @@
 import { RNG } from '../rng';
 
-const ASCII_MAP = "@%#*+=-:. ".split("");
+const CHARSETS: Record<string, string[]> = {
+  standard: "@%#*+=-:. ".split(""),
+  binary: "01 ".split(""),
+  blocks: "█▓▒░ ".split(""),
+  matrix: "日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ ".split(""),
+  math: "∑∫π∆Ω∞µ≈≠± ".split(""),
+  minimal: "+-.".split("")
+};
 
 export function renderAsciiLayer(ctx: CanvasRenderingContext2D, width: number, height: number, rng: RNG, params: Record<string, any>): void {
   const fontSize = params.asciiFontSize ?? 10;
   const textColor = params.asciiColor?.hex || '#ffffff';
   const bgColor = params.asciiBackground?.hex || '#000000';
+  const charsetName = params.asciiCharset || "standard";
+  const charMap = CHARSETS[charsetName] || CHARSETS["standard"];
 
   // 1. Get current image data
   let imageData: ImageData | null = null;
@@ -40,9 +49,9 @@ export function renderAsciiLayer(ctx: CanvasRenderingContext2D, width: number, h
       const b = imageData.data[idx+2];
       
       const luma = r*0.299 + g*0.587 + b*0.114;
-      // Map 0-255 to 0-(ASCII_MAP.length-1)
-      const charIdx = Math.floor((luma / 255) * (ASCII_MAP.length - 1));
-      const char = ASCII_MAP[charIdx];
+      // Map 0-255 to 0-(charMap.length-1)
+      const charIdx = Math.floor((luma / 255) * (charMap.length - 1));
+      const char = charMap[charIdx];
 
       ctx.fillText(char, x, y);
     }
