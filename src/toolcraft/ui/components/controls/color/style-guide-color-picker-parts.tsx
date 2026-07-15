@@ -702,6 +702,7 @@ export function ColorFooter({
             onColorValueChange={onColorValueChange}
             onColorValueFocus={onColorValueFocus}
             showOpacity={showOpacity}
+          />
         )}
       </div>
     </div>
