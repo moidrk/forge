@@ -149,29 +149,34 @@ export function renderRecipe(
     } else {
       // Pixel-based effects that need unscaled physical coordinates
       ctx.save();
+      // We must operate on the actual physical pixels of the canvas, 
+      // because the export engine might have applied its own pixelRatio scale
+      const pWidth = ctx.canvas.width || (recipe.width * scaleX);
+      const pHeight = ctx.canvas.height || (recipe.height * scaleY);
+      
+      const physicalScaleX = pWidth / recipe.width;
+      const physicalScaleY = pHeight / recipe.height;
+
       ctx.resetTransform();
-      const pWidth = recipe.width * scaleX;
-      const pHeight = recipe.height * scaleY;
       const pParams = { ...layer.params };
 
       if (layer.type === "bloom") {
-        pParams.bloomBlur = (pParams.bloomBlur ?? 10) * scaleX;
+        pParams.bloomBlur = (pParams.bloomBlur ?? 10) * physicalScaleX;
         renderBloomLayer(ctx, pWidth, pHeight, rng, pParams);
       } else if (layer.type === "grain") {
         renderGrainLayer(ctx, pWidth, pHeight, rng, pParams);
       } else if (layer.type === "pixelate") {
-        pParams.pixelateSize = (pParams.pixelateSize ?? 10) * scaleX;
+        pParams.pixelateSize = (pParams.pixelateSize ?? 10) * physicalScaleX;
         renderPixelateLayer(ctx, pWidth, pHeight, rng, pParams);
       } else if (layer.type === "dither") {
         renderDitherLayer(ctx, pWidth, pHeight, rng, pParams);
       } else if (layer.type === "dataGrid") {
-        // Not strictly pixel-based but uses physical coordinates safely
         renderDataGridLayer(ctx, pWidth, pHeight, rng, pParams);
       } else if (layer.type === "dataCascade") {
-        pParams.fontSize = 14 * scaleX; // Pass scaled font size
+        pParams.fontSize = 14 * physicalScaleX;
         renderDataCascadeLayer(ctx, pWidth, pHeight, rng, pParams);
       } else if (layer.type === "ascii") {
-        pParams.asciiFontSize = (pParams.asciiFontSize ?? 10) * scaleX;
+        pParams.asciiFontSize = (pParams.asciiFontSize ?? 10) * physicalScaleX;
         renderAsciiLayer(ctx, pWidth, pHeight, rng, pParams);
       } else if (layer.type === "glitch") {
         renderGlitchLayer(ctx, pWidth, pHeight, rng, pParams);
