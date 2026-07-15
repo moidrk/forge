@@ -171,6 +171,8 @@ export function renderRecipe(
       } else if (layer.type === "dither") {
         renderDitherLayer(ctx, pWidth, pHeight, rng, pParams);
       } else if (layer.type === "dataGrid") {
+        pParams.gridDensity = (pParams.gridDensity ?? 20) * physicalScaleX;
+        pParams.gridMaxRadius = (pParams.gridMaxRadius ?? 10) * physicalScaleX;
         renderDataGridLayer(ctx, pWidth, pHeight, rng, pParams);
       } else if (layer.type === "dataCascade") {
         pParams.fontSize = 14 * physicalScaleX;
