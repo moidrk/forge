@@ -418,7 +418,7 @@ export function ColorValueControl({
         <Input
           aria-label={`${label} hex`}
           autoComplete="off"
-          className="font-mono"
+          className="font-mono w-24"
           name={inputName}
           onBlur={handleDraftBlur}
           onChange={(event) => updateDraft(event.target.value)}
@@ -443,6 +443,43 @@ export function ColorValueControl({
           type="text"
           value={draftColor}
         />
+        <button
+          type="button"
+          title="Pick Color from Screen"
+          onClick={async () => {
+            if (!(window as any).EyeDropper) {
+              alert("Your browser does not support the EyeDropper API");
+              return;
+            }
+            try {
+              const ed = new (window as any).EyeDropper();
+              const res = await ed.open();
+              if (res?.sRGBHex) {
+                commitColor(res.sRGBHex, getLiveHistoryMeta());
+              }
+            } catch(e) {}
+          }}
+          className="flex h-full w-8 items-center justify-center border-l border-[color:var(--border)] bg-transparent hover:text-white hover:bg-white/10 transition-colors text-neutral-400"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m2 22 1-1h3l9-9"></path>
+            <path d="M3 21v-3l9-9"></path>
+            <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"></path>
+          </svg>
+        </button>
+        <button
+          type="button"
+          title="Transparent / No Color"
+          onClick={() => {
+            commitColor("transparent", getLiveHistoryMeta());
+          }}
+          className="flex h-full w-8 items-center justify-center border-l border-[color:var(--border)] bg-transparent hover:text-red-400 hover:bg-white/10 transition-colors text-neutral-400 relative"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+          </svg>
+        </button>
         {children}
       </ButtonGroup>
       {nativeInputName ? (
