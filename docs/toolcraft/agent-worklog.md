@@ -31,6 +31,12 @@ We evaluated WebGL vs Canvas 2D. Canvas 2D is chosen for its simplicity in compo
 - **Reference Checked**: User requirement for "fine control" over multiple spawned image and effect layers.
 - **Rules Applied**: Custom UI controls must still use `useToolcraftState` and dispatch `controls.setValue` to participate in global undo/redo and persistence.
 
+### 3. Curated Templates & Sidebar Overhaul
+- **Decision**: Restructured `LayerPropertiesPanel` into collapsible UI blocks (COLORS, DISTORTION, GLITTER, PATTERNS, BLEND) and implemented `TemplatesGallery` with a confirmation overwrite. Built `glitter` engine module.
+- **Reference Checked**: The user requested highly-polished UI panels grouped intuitively and template starting points, inspired by the "Colir" web app UI screenshots.
+- **Rules Applied**: Controls are grouped by product meaning and effect context instead of raw type. Templates safely update the global schema via commands rather than modifying state out-of-band.
+- **Verification**: Functional tests passed for layer stack reset via templates and for new grouped UI sliders hooking correctly into `layerPropertiesStore`.
+
 ## Verification Status
 
 Runner: agent-browser

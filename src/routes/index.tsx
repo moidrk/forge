@@ -1,9 +1,10 @@
 import * as React from "react";
 import { ToolcraftApp, useToolcraft } from "@/toolcraft/runtime/react";
 import { appSchema } from "../app/app-schema";
-import ForgeCanvas from "../app/ForgeCanvas";
+import ForgeCanvas, { createRecipeFromState } from "../app/ForgeCanvas";
 import { LayerPropertiesPanel } from "../app/LayerPropertiesPanel";
 import { ProductTour } from "../app/ProductTour";
+import { TemplatesGallery } from "../app/TemplatesGallery";
 
 const randomHexColor = () => "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
 const randomRange = (min: number, max: number) => min + Math.random() * (max - min);
@@ -57,7 +58,7 @@ export function performGodModeShuffle(state: any, dispatch: any) {
     }
 
     if (layer.kind === "group" && props.type !== "imageLayout") {
-      const allEffects = ["shader", "techOverlay", "glitch", "halftone", "bloom", "grain", "pixelate", "dither", "dataGrid", "dataCascade", "ascii", "solid"];
+      const allEffects = ["shader", "techOverlay", "glitch", "halftone", "bloom", "grain", "glitter", "pixelate", "dither", "dataGrid", "dataCascade", "ascii", "solid"];
       if (Math.random() > 0.3 || !props.type) {
          props.type = allEffects[randomInt(0, allEffects.length - 1)];
       }
@@ -91,6 +92,11 @@ export function performGodModeShuffle(state: any, dispatch: any) {
     } else if (props.type === "grain") {
       props.grainIntensity = randomRange(0.1, 0.8);
       props.grainColor = Math.random() > 0.5;
+    } else if (props.type === "glitter") {
+      props.glitterDensity = Math.floor(randomRange(50, 300));
+      props.glitterSizeMin = randomRange(0.1, 1);
+      props.glitterSizeMax = randomRange(1.5, 4);
+      props.glitterOpacity = randomRange(0.4, 0.9);
     } else if (props.type === "pixelate") {
       props.pixelSize = Math.floor(randomRange(5, 40));
     } else if (props.type === "dither") {
@@ -181,7 +187,7 @@ export function AppHome(): React.JSX.Element {
   const handlePanelAction = React.useCallback(async (context: any) => {
     const actionVal = context.action.value;
 
-    if (["addShader", "addTechOverlay", "addGlitch", "addHalftone", "addImageLayout", "addBloom", "addGrain", "addPixelate", "addDither", "addDataGrid", "addDataCascade", "addAscii"].includes(actionVal)) {
+    if (["addShader", "addTechOverlay", "addGlitch", "addHalftone", "addImageLayout", "addBloom", "addGrain", "addGlitter", "addPixelate", "addDither", "addDataGrid", "addDataCascade", "addAscii"].includes(actionVal)) {
       const typeMap: Record<string, string> = {
         addShader: "shader",
         addTechOverlay: "techOverlay",
@@ -190,6 +196,7 @@ export function AppHome(): React.JSX.Element {
         addImageLayout: "imageLayout",
         addBloom: "bloom",
         addGrain: "grain",
+        addGlitter: "glitter",
         addPixelate: "pixelate",
         addDither: "dither",
         addDataGrid: "dataGrid",
@@ -204,6 +211,7 @@ export function AppHome(): React.JSX.Element {
         addImageLayout: "Grid Layout",
         addBloom: "Bloom Filter",
         addGrain: "Film Grain",
+        addGlitter: "Glitter",
         addPixelate: "Pixelate Filter",
         addDither: "Dither Filter",
         addDataGrid: "Data Grid",
@@ -313,7 +321,6 @@ export function AppHome(): React.JSX.Element {
         try {
           const { createToolcraftPngExportCanvas } = await import("@/toolcraft/runtime/export");
           const { renderRecipe } = await import("@/lib/generation/engine");
-          const { createRecipeFromState } = await import("../app/ForgeCanvas");
 
           const state = context.state;
           const values = state.values;
@@ -384,7 +391,7 @@ export function AppHome(): React.JSX.Element {
         canvasContent={<ForgeCanvas />} 
         renderDefaultCanvasMedia={false} 
         onPanelAction={handlePanelAction}
-        controlRenderers={{ layerPropertiesEditor: LayerPropertiesPanel }}
+        controlRenderers={{ layerPropertiesEditor: LayerPropertiesPanel, templatesGallery: TemplatesGallery }}
       />
     </>
   );

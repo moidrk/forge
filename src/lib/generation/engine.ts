@@ -13,6 +13,7 @@ import { renderDitherLayer } from './modules/dither';
 import { renderDataGridLayer } from './modules/dataGrid';
 import { renderDataCascadeLayer } from './modules/dataCascade';
 import { renderAsciiLayer } from './modules/ascii';
+import { renderGlitterLayer, generateGlitterLayerSVG } from './modules/glitter';
 
 export function getImageLayerBounds(width: number, height: number, img: HTMLImageElement, params: any) {
   const scale = params.scale ?? 1.0;
@@ -182,6 +183,10 @@ export function renderRecipe(
         renderAsciiLayer(ctx, pWidth, pHeight, rng, pParams);
       } else if (layer.type === "glitch") {
         renderGlitchLayer(ctx, pWidth, pHeight, rng, pParams);
+      } else if (layer.type === "glitter") {
+        pParams.glitterSizeMin = (pParams.glitterSizeMin ?? 0.5) * physicalScaleX;
+        pParams.glitterSizeMax = (pParams.glitterSizeMax ?? 2.5) * physicalScaleX;
+        renderGlitterLayer(ctx, pWidth, pHeight, rng, pParams);
       }
       ctx.restore();
     }
@@ -228,6 +233,8 @@ export function generateSVG(recipe: DesignRecipe): string {
       svgContent += generateGlitchLayerSVG(width, height, rng, layer.params);
     } else if (layer.type === "imageLayout") {
       svgContent += generateImageLayoutLayerSVG(width, height, new RNG(layer.params.layoutSeed ?? recipe.seed), layer.params);
+    } else if (layer.type === "glitter") {
+      svgContent += generateGlitterLayerSVG(width, height, rng, layer.params);
     }
   }
 

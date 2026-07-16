@@ -2,10 +2,68 @@ import * as React from "react";
 import { useToolcraft } from "@/toolcraft/runtime/react";
 import { Slider, Color, Select, Checkbox, ControlFieldLabel } from "@/toolcraft/ui";
 
+const randomHexColor = () => "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+
+function CollapsibleSection({ title, defaultOpen = true, children }: { title: string, defaultOpen?: boolean, children: React.ReactNode }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  return (
+    <div className="border border-neutral-800 rounded-lg overflow-hidden bg-neutral-900/50 mb-3 shadow-sm">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-3 text-xs font-bold tracking-widest text-neutral-400 hover:text-white hover:bg-neutral-800/50 uppercase transition-colors bg-neutral-900">
+        {title}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+      {open && <div className="p-3 flex flex-col gap-3 border-t border-neutral-800 bg-neutral-900/30">{children}</div>}
+    </div>
+  );
+}
+
+const COLOR_TEMPLATES = {
+  "Vibrant": ["#ff0000", "#00ff00", "#0000ff", "#ffff00"],
+  "Pastel": ["#ffb3ba", "#ffdfba", "#ffffba", "#baffc9"],
+  "Neon": ["#ff00ff", "#00ffff", "#00ff00", "#ffff00"],
+  "Monochrome": ["#ffffff", "#cccccc", "#666666", "#000000"],
+  "Cyber": ["#fcee09", "#00f0ff", "#ff003c", "#1d00ff"]
+};
+
+function ShaderColorsPanel({ props, updateProp }: { props: any, updateProp: (key: string, val: any) => void }) {
+  const handleRandomize = () => {
+    updateProp("shaderColor1", { hex: randomHexColor() });
+    updateProp("shaderColor2", { hex: randomHexColor() });
+    updateProp("shaderColor3", { hex: randomHexColor() });
+    updateProp("shaderColor4", { hex: randomHexColor() });
+  };
+  const handleTemplate = (val: string) => {
+    if (val === "custom") return;
+    const t = COLOR_TEMPLATES[val as keyof typeof COLOR_TEMPLATES];
+    if (t) {
+      updateProp("shaderColor1", { hex: t[0] });
+      updateProp("shaderColor2", { hex: t[1] });
+      updateProp("shaderColor3", { hex: t[2] });
+      updateProp("shaderColor4", { hex: t[3] });
+    }
+  };
+  return (
+    <CollapsibleSection title="COLORS">
+      <div className="flex gap-2 mb-2">
+        <button onClick={handleRandomize} className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white rounded py-1.5 text-xs font-medium transition-colors border border-neutral-700">Randomize</button>
+        <div className="flex-1">
+           <Select name="" options={[{label: "Template...", value: "custom"}, ...Object.keys(COLOR_TEMPLATES).map(k => ({label: k, value: k}))]} value="custom" onValueChange={handleTemplate} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+         <Color name="Color 1" hex={props.shaderColor1?.hex || "#ff0000"} onValueChange={(val) => updateProp("shaderColor1", val)} />
+         <Color name="Color 2" hex={props.shaderColor2?.hex || "#00ff00"} onValueChange={(val) => updateProp("shaderColor2", val)} />
+         <Color name="Color 3" hex={props.shaderColor3?.hex || "#0000ff"} onValueChange={(val) => updateProp("shaderColor3", val)} />
+         <Color name="Color 4" hex={props.shaderColor4?.hex || "#ffff00"} onValueChange={(val) => updateProp("shaderColor4", val)} />
+      </div>
+    </CollapsibleSection>
+  );
+}
+
 function ShaderFineTuners({ props, updateProp, isFilter = false }: { props: any, updateProp: (key: string, val: any) => void, isFilter?: boolean }) {
   const type = isFilter ? props.imageShaderFilter : (props.shaderType || "MeshGradient");
   return (
-    <>
+    <CollapsibleSection title="DISTORTION">
       <Checkbox
         name="Pause Animation"
         checked={props.shaderPaused || false}
@@ -42,14 +100,7 @@ function ShaderFineTuners({ props, updateProp, isFilter = false }: { props: any,
           <Slider name="Swirl" value={props.meshSwirl ?? 1.0} min={0} max={5} step={0.1} onValueChange={(val) => updateProp("meshSwirl", val)} />
         </>
       )}
-
-      <div className="grid grid-cols-2 gap-2 mt-2">
-         <Color name="Color 1" hex={props.shaderColor1?.hex || "#ff0000"} onValueChange={(val) => updateProp("shaderColor1", val)} />
-         <Color name="Color 2" hex={props.shaderColor2?.hex || "#00ff00"} onValueChange={(val) => updateProp("shaderColor2", val)} />
-         <Color name="Color 3" hex={props.shaderColor3?.hex || "#0000ff"} onValueChange={(val) => updateProp("shaderColor3", val)} />
-         <Color name="Color 4" hex={props.shaderColor4?.hex || "#ffff00"} onValueChange={(val) => updateProp("shaderColor4", val)} />
-      </div>
-    </>
+    </CollapsibleSection>
   );
 }
 
@@ -144,24 +195,24 @@ function AlignmentButtons({ layerId, props, store, state, dispatch, currentType 
   return (
     <div className="flex flex-col gap-2 mt-2 mb-2">
       <div className="text-xs uppercase text-neutral-500 font-semibold">Alignment</div>
-      <div className="flex bg-neutral-900 rounded p-1 justify-between gap-1">
-        <button onClick={() => handleAlign("left")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white" title="Align Left">
+      <div className="flex bg-neutral-900 border border-neutral-800 rounded p-1 justify-between gap-1">
+        <button onClick={() => handleAlign("left")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors" title="Align Left">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22V2M14 6H6v12h8V6z"/></svg>
         </button>
-        <button onClick={() => handleAlign("centerH")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white" title="Align Center Horizontally">
+        <button onClick={() => handleAlign("centerH")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors" title="Align Center Horizontally">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M18 6H6v12h12V6z"/></svg>
         </button>
-        <button onClick={() => handleAlign("right")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white" title="Align Right">
+        <button onClick={() => handleAlign("right")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors" title="Align Right">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 22V2M18 6h-8v12h8V6z"/></svg>
         </button>
         <div className="w-px bg-neutral-800 mx-1"></div>
-        <button onClick={() => handleAlign("top")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white" title="Align Top">
+        <button onClick={() => handleAlign("top")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors" title="Align Top">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4h20M6 14v-8h12v8H6z"/></svg>
         </button>
-        <button onClick={() => handleAlign("centerV")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white" title="Align Center Vertically">
+        <button onClick={() => handleAlign("centerV")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors" title="Align Center Vertically">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h20M6 18V6h12v12H6z"/></svg>
         </button>
-        <button onClick={() => handleAlign("bottom")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white" title="Align Bottom">
+        <button onClick={() => handleAlign("bottom")} className="flex-1 p-1.5 hover:bg-neutral-800 rounded flex items-center justify-center text-neutral-400 hover:text-white transition-colors" title="Align Bottom">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20M6 18v-8h12v8H6z"/></svg>
         </button>
       </div>
@@ -184,7 +235,7 @@ export function LayerPropertiesPanel() {
   const layerProps = layerId ? store[layerId] : null;
 
   if (!layerId || !selectedLayer) {
-    return <div className="p-4 text-sm text-neutral-500">Select a layer to edit its properties.</div>;
+    return <div className="p-4 text-sm text-neutral-500 text-center mt-10">Select a layer to edit its properties.</div>;
   }
 
   // If the layer doesn't have custom props (e.g. standard uploaded image), it might just have opacity/blend mode.
@@ -222,30 +273,35 @@ export function LayerPropertiesPanel() {
   const isGenericGroup = selectedLayer.kind === "group" && !isCustomEffect;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">
+    <div className="flex flex-col px-1">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-neutral-600 mb-3 px-1">
         {isGenericGroup ? "Group" : currentType} Properties
       </div>
       
       {currentType === "shader" && (
         <>
-          <Select
-            name="Shader Type"
-            options={[ { label: "Mesh Gradient", value: "MeshGradient" }, { label: "Liquid Metal", value: "LiquidMetal" }, { label: "Metaballs", value: "Metaballs" }, { label: "God Rays", value: "GodRays" }, { label: "Neuro Noise", value: "NeuroNoise" }, { label: "Grain Gradient", value: "GrainGradient" }, { label: "Gem Smoke", value: "GemSmoke" }, { label: "Warp", value: "Warp" }, { label: "Water", value: "Water" } ]}
-            value={props.shaderType || "MeshGradient"}
-            onValueChange={(val) => updateProp("shaderType", val)}
-          />
-          <Checkbox
-            name="Warp Image"
-            checked={props.shaderWarpImage || false}
-            onCheckedChange={(val) => updateProp("shaderWarpImage", val)}
-          />
+          <CollapsibleSection title="SHADER SETTINGS">
+            <Select
+              name="Shader Type"
+              options={[ { label: "Mesh Gradient", value: "MeshGradient" }, { label: "Liquid Metal", value: "LiquidMetal" }, { label: "Metaballs", value: "Metaballs" }, { label: "God Rays", value: "GodRays" }, { label: "Neuro Noise", value: "NeuroNoise" }, { label: "Grain Gradient", value: "GrainGradient" }, { label: "Gem Smoke", value: "GemSmoke" }, { label: "Warp", value: "Warp" }, { label: "Water", value: "Water" } ]}
+              value={props.shaderType || "MeshGradient"}
+              onValueChange={(val) => updateProp("shaderType", val)}
+            />
+            <Checkbox
+              name="Warp Image"
+              checked={props.shaderWarpImage || false}
+              onCheckedChange={(val) => updateProp("shaderWarpImage", val)}
+            />
+          </CollapsibleSection>
+          
+          <ShaderColorsPanel props={props} updateProp={updateProp} />
+          
           <ShaderFineTuners props={props} updateProp={updateProp} isFilter={false} />
         </>
       )}
 
       {currentType === "techOverlay" && (
-        <>
+        <CollapsibleSection title="TECH OVERLAY">
           <Select
             name="Style"
             options={[ { label: "Cyberpunk HUD", value: "cyberpunk" }, { label: "Minimalist Print", value: "minimalist" }, { label: "Blueprint", value: "blueprint" }, { label: "AI Tracking", value: "tracking" }, { label: "Topography", value: "topography" } ]}
@@ -257,11 +313,11 @@ export function LayerPropertiesPanel() {
           {props.techStyle !== "tracking" && props.techStyle !== "topography" && (
             <Checkbox name="Show Barcodes" checked={props.showBarcodes ?? true} onCheckedChange={(val) => updateProp("showBarcodes", val)} />
           )}
-        </>
+        </CollapsibleSection>
       )}
 
       {currentType === "bloom" && (
-        <>
+        <CollapsibleSection title="BLOOM">
           <Slider name="Intensity" value={props.bloomIntensity ?? 0.5} min={0} max={2} step={0.05} onValueChange={(val) => updateProp("bloomIntensity", val)} />
           <Slider name="Radius" value={props.bloomRadius ?? 20} min={1} max={100} step={1} onValueChange={(val) => updateProp("bloomRadius", val)} />
           <Select
@@ -270,24 +326,33 @@ export function LayerPropertiesPanel() {
             value={props.bloomBlendMode || "screen"}
             onValueChange={(val) => updateProp("bloomBlendMode", val)}
           />
-        </>
+        </CollapsibleSection>
       )}
 
       {currentType === "grain" && (
-        <>
+        <CollapsibleSection title="FILM GRAIN">
           <Slider name="Intensity" value={props.grainIntensity ?? 0.5} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("grainIntensity", val)} />
           <Checkbox name="Colored Noise" checked={props.grainColor ?? false} onCheckedChange={(val) => updateProp("grainColor", val)} />
-        </>
+        </CollapsibleSection>
+      )}
+
+      {currentType === "glitter" && (
+        <CollapsibleSection title="GLITTER">
+          <Slider name="Density" value={props.glitterDensity ?? 100} min={10} max={1000} step={10} onValueChange={(val) => updateProp("glitterDensity", val)} />
+          <Slider name="Size Min" value={props.glitterSizeMin ?? 0.5} min={0.1} max={5} step={0.1} onValueChange={(val) => updateProp("glitterSizeMin", val)} />
+          <Slider name="Size Max" value={props.glitterSizeMax ?? 2.5} min={1} max={20} step={0.5} onValueChange={(val) => updateProp("glitterSizeMax", val)} />
+          <Slider name="Opacity" value={props.glitterOpacity ?? 0.65} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("glitterOpacity", val)} />
+        </CollapsibleSection>
       )}
 
       {currentType === "pixelate" && (
-        <>
+        <CollapsibleSection title="PIXELATE">
           <Slider name="Block Size" value={props.pixelSize ?? 10} min={2} max={100} step={1} onValueChange={(val) => updateProp("pixelSize", val)} />
-        </>
+        </CollapsibleSection>
       )}
 
       {currentType === "dither" && (
-        <>
+        <CollapsibleSection title="DITHER">
           <Select
             name="Algorithm"
             options={[ { label: "Atkinson", value: "atkinson" }, { label: "Threshold (1-bit)", value: "threshold" } ]}
@@ -297,26 +362,26 @@ export function LayerPropertiesPanel() {
           <Color name="Dark Color" hex={props.ditherDark?.hex || "#000000"} onValueChange={(val) => updateProp("ditherDark", val)} />
           <Color name="Light Color" hex={props.ditherLight?.hex || "#ffffff"} onValueChange={(val) => updateProp("ditherLight", val)} />
           <Slider name="Threshold Bias" value={props.ditherBias ?? 0.5} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("ditherBias", val)} />
-        </>
+        </CollapsibleSection>
       )}
 
       {currentType === "dataGrid" && (
-        <>
+        <CollapsibleSection title="DATA GRID">
           <Slider name="Grid Density" value={props.gridDensity ?? 20} min={5} max={100} step={1} onValueChange={(val) => updateProp("gridDensity", val)} />
           <Slider name="Max Radius" value={props.gridMaxRadius ?? 10} min={1} max={50} step={0.5} onValueChange={(val) => updateProp("gridMaxRadius", val)} />
           <Color name="Dot Color" hex={props.gridColor?.hex || "#ffffff"} onValueChange={(val) => updateProp("gridColor", val)} />
-        </>
+        </CollapsibleSection>
       )}
 
       {currentType === "dataCascade" && (
-        <>
+        <CollapsibleSection title="DATA CASCADE">
           <Slider name="Stream Density" value={props.cascadeDensity ?? 0.5} min={0.1} max={1} step={0.05} onValueChange={(val) => updateProp("cascadeDensity", val)} />
           <Color name="Text Color" hex={props.cascadeColor?.hex || "#00ff00"} onValueChange={(val) => updateProp("cascadeColor", val)} />
-        </>
+        </CollapsibleSection>
       )}
 
       {currentType === "ascii" && (
-        <>
+        <CollapsibleSection title="ASCII SETTINGS">
           <Select
             name="Character Set"
             options={[ 
@@ -347,18 +412,18 @@ export function LayerPropertiesPanel() {
           <Slider name="Font Size" value={props.asciiFontSize ?? 10} min={4} max={40} step={1} onValueChange={(val) => updateProp("asciiFontSize", val)} />
           <Color name="Text Color" hex={props.asciiColor?.hex || "#ffffff"} onValueChange={(val) => updateProp("asciiColor", val)} />
           <Color name="Background" hex={props.asciiBackground?.hex || "#000000"} onValueChange={(val) => updateProp("asciiBackground", val)} />
-        </>
+        </CollapsibleSection>
       )}
 
       {currentType === "glitch" && (
-        <>
+        <CollapsibleSection title="GLITCH">
           <Slider name="Intensity" value={props.glitchIntensity ?? 0.5} min={0} max={1} step={0.05} onValueChange={(val) => updateProp("glitchIntensity", val)} />
           <Checkbox name="RGB Split (VHS)" checked={props.glitchRGB ?? false} onCheckedChange={(val) => updateProp("glitchRGB", val)} />
-        </>
+        </CollapsibleSection>
       )}
 
       {currentType === "halftone" && (
-        <>
+        <CollapsibleSection title="HALFTONE">
           <Select
             name="Style"
             options={[ { label: "Dots", value: "dots" }, { label: "Lines", value: "lines" }, { label: "Crosshatch", value: "crosshatch" } ]}
@@ -369,11 +434,11 @@ export function LayerPropertiesPanel() {
           <Slider name="Size" value={props.halftoneSize ?? 4} min={1} max={20} step={1} onValueChange={(val) => updateProp("halftoneSize", val)} />
           <Slider name="Spacing" value={props.halftoneSpacing ?? 6} min={2} max={40} step={1} onValueChange={(val) => updateProp("halftoneSpacing", val)} />
           <Slider name="Angle" value={props.halftoneAngle ?? 45} min={0} max={180} step={1} onValueChange={(val) => updateProp("halftoneAngle", val)} />
-        </>
+        </CollapsibleSection>
       )}
 
       {currentType === "imageLayout" && (
-        <>
+        <CollapsibleSection title="GRID LAYOUT">
           <Slider name="Layout Seed" value={props.layoutSeed ?? 446331} min={0} max={1000000} step={1} onValueChange={(val) => updateProp("layoutSeed", val)} />
           <Select
             name="Grid Style"
@@ -384,11 +449,11 @@ export function LayerPropertiesPanel() {
           <Slider name="Complexity X" value={props.columns ?? 3} min={1} max={10} step={1} onValueChange={(val) => updateProp("columns", val)} />
           <Slider name="Complexity Y" value={props.rows ?? 3} min={1} max={10} step={1} onValueChange={(val) => updateProp("rows", val)} />
           <Slider name="Gap Size" value={props.gap ?? 10} min={0} max={100} step={1} onValueChange={(val) => updateProp("gap", val)} />
-        </>
+        </CollapsibleSection>
       )}
 
       {currentType === "image" && !isGenericGroup && (
-        <>
+        <CollapsibleSection title="TRANSFORM & FILTERS">
           <Select
              name="Shader Filter"
              options={[ { label: "None", value: "none" }, { label: "Liquid Metal", value: "LiquidMetal" }, { label: "Warp", value: "Warp" }, { label: "Water", value: "Water" }, { label: "Gem Smoke", value: "GemSmoke" }, { label: "Mesh Gradient", value: "MeshGradient" } ]}
@@ -396,7 +461,7 @@ export function LayerPropertiesPanel() {
              onValueChange={(val) => updateProp("imageShaderFilter", val)}
           />
           {props.imageShaderFilter && props.imageShaderFilter !== "none" && (
-             <div className="p-3 border border-neutral-800 rounded bg-neutral-900/50 flex flex-col gap-3">
+             <div className="p-3 border border-neutral-800 rounded bg-neutral-900/50 flex flex-col gap-3 my-2">
                <div className="text-xs uppercase text-neutral-500 font-semibold mb-1">Filter Settings</div>
                <Checkbox name="Preserve Transparency" checked={props.preserveTransparency ?? true} onCheckedChange={(val) => updateProp("preserveTransparency", val)} />
                <ShaderFineTuners props={props} updateProp={updateProp} isFilter={true} />
@@ -416,34 +481,36 @@ export function LayerPropertiesPanel() {
           <Slider name="Scale" value={props.scale ?? 1.0} min={0.1} max={5.0} step={0.01} onValueChange={(val) => updateProp("scale", val)} />
           <Slider name="X Position" value={props.transformX ?? 0} min={-2000} max={2000} step={1} onValueChange={(val) => updateProp("transformX", val)} />
           <Slider name="Y Position" value={props.transformY ?? 0} min={-2000} max={2000} step={1} onValueChange={(val) => updateProp("transformY", val)} />
-        </>
+        </CollapsibleSection>
       )}
 
       {/* Universal Blend Controls */}
-      <Select
-        name="Blend Mode"
-        options={[
-          { label: "Normal", value: "source-over" },
-          { label: "Multiply", value: "multiply" },
-          { label: "Screen", value: "screen" },
-          { label: "Overlay", value: "overlay" },
-          { label: "Darken", value: "darken" },
-          { label: "Lighten", value: "lighten" },
-          { label: "Color Dodge", value: "color-dodge" },
-          { label: "Color Burn", value: "color-burn" },
-          { label: "Hard Light", value: "hard-light" },
-          { label: "Soft Light", value: "soft-light" },
-          { label: "Difference", value: "difference" },
-          { label: "Exclusion", value: "exclusion" },
-          { label: "Hue", value: "hue" },
-          { label: "Saturation", value: "saturation" },
-          { label: "Color", value: "color" },
-          { label: "Luminosity", value: "luminosity" }
-        ]}
-        value={props.blendMode || props.imageBlendMode || "source-over"}
-        onValueChange={(val) => updateProp("blendMode", val)}
-      />
-      <Slider name="Opacity" value={props.opacity ?? props.imageOpacity ?? 1} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("opacity", val)} />
+      <CollapsibleSection title="GLOBAL BLEND" defaultOpen={false}>
+        <Select
+          name="Blend Mode"
+          options={[
+            { label: "Normal", value: "source-over" },
+            { label: "Multiply", value: "multiply" },
+            { label: "Screen", value: "screen" },
+            { label: "Overlay", value: "overlay" },
+            { label: "Darken", value: "darken" },
+            { label: "Lighten", value: "lighten" },
+            { label: "Color Dodge", value: "color-dodge" },
+            { label: "Color Burn", value: "color-burn" },
+            { label: "Hard Light", value: "hard-light" },
+            { label: "Soft Light", value: "soft-light" },
+            { label: "Difference", value: "difference" },
+            { label: "Exclusion", value: "exclusion" },
+            { label: "Hue", value: "hue" },
+            { label: "Saturation", value: "saturation" },
+            { label: "Color", value: "color" },
+            { label: "Luminosity", value: "luminosity" }
+          ]}
+          value={props.blendMode || props.imageBlendMode || "source-over"}
+          onValueChange={(val) => updateProp("blendMode", val)}
+        />
+        <Slider name="Opacity" value={props.opacity ?? props.imageOpacity ?? 1} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("opacity", val)} />
+      </CollapsibleSection>
     </div>
   );
 }

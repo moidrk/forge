@@ -12,7 +12,13 @@ export const appSchema = defineToolcraft({
       title: "Forge Editor",
       sections: [
         {
-          title: "Layer Actions",
+          title: "Templates",
+          controls: {
+            templatesButton: { target: "templatesButton", type: "templatesGallery", performanceRole: "workload" as any }
+          }
+        },
+        {
+          title: "Effects & Media",
           controls: {
             "images": {
               target: "images",
@@ -33,6 +39,7 @@ export const appSchema = defineToolcraft({
                 { value: "addImageLayout", label: "Grid Layout" },
                 { value: "addBloom", label: "Bloom" },
                 { value: "addGrain", label: "Film Grain" },
+                { value: "addGlitter", label: "Glitter" },
                 { value: "addPixelate", label: "Pixelate" },
                 { value: "addDither", label: "Dither" },
                 { value: "addDataGrid", label: "Data Grid" },
