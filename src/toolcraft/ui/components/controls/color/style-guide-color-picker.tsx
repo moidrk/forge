@@ -87,6 +87,8 @@ type ColorPickerViewProps = {
   onColorValueFocus: () => void;
   onColorValueChange: (nextHex: string) => void;
   onColorValueBlur: () => void;
+  onChange: (hex: string) => void;
+  onCommit?: () => void;
 };
 
 type ColorPickerRefs = {
@@ -431,6 +433,8 @@ function useColorPickerController({
     onColorValueFocus: colorValueHandlers.handleColorValueFocus,
     onColorValueChange: colorValueHandlers.handleColorValueChange,
     onColorValueBlur: colorValueHandlers.handleColorValueBlur,
+    onChange,
+    onCommit,
     ...hexHandlers,
   };
 }
@@ -464,18 +468,59 @@ function ColorPickerView(props: ColorPickerViewProps) {
       >
         <div
           data-slot="style-guide-color-slider-wrap"
-          className="flex h-9 w-full shrink-0 items-center px-3"
+          className="flex h-9 w-full shrink-0 items-center px-3 gap-2"
         >
-          <ColorModelSlider
-            label={props.sliderConfig.label}
-            disabled={props.disabled}
-            max={props.sliderConfig.max}
-            railBackground={props.sliderConfig.railBackground}
-            value={props.sliderConfig.value}
-            onDragStateChange={props.sliderHandlers.handleSliderDragStateChange}
-            onPreviewChange={props.sliderHandlers.handleSliderPreviewChange}
-            onCommit={props.sliderHandlers.handleSliderCommit}
-          />
+          <div className="flex-1">
+            <ColorModelSlider
+              label={props.sliderConfig.label}
+              disabled={props.disabled}
+              max={props.sliderConfig.max}
+              railBackground={props.sliderConfig.railBackground}
+              value={props.sliderConfig.value}
+              onDragStateChange={props.sliderHandlers.handleSliderDragStateChange}
+              onPreviewChange={props.sliderHandlers.handleSliderPreviewChange}
+              onCommit={props.sliderHandlers.handleSliderCommit}
+            />
+          </div>
+          <button
+            type="button"
+            title="Pick Color from Screen"
+            onClick={async () => {
+              if (!(window as any).EyeDropper) {
+                alert("Your browser does not support the EyeDropper API");
+                return;
+              }
+              try {
+                const ed = new (window as any).EyeDropper();
+                const res = await ed.open();
+                if (res?.sRGBHex) {
+                  props.onChange(res.sRGBHex);
+                  if (props.onCommit) props.onCommit();
+                }
+              } catch(e) {}
+            }}
+            className="flex h-6 w-6 items-center justify-center rounded bg-transparent hover:text-white hover:bg-white/10 transition-colors text-neutral-400 shrink-0"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m2 22 1-1h3l9-9"></path>
+              <path d="M3 21v-3l9-9"></path>
+              <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"></path>
+            </svg>
+          </button>
+          <button
+            type="button"
+            title="Transparent / No Color"
+            onClick={() => {
+              props.onChange("transparent");
+              if (props.onCommit) props.onCommit();
+            }}
+            className="flex h-6 w-6 items-center justify-center rounded bg-transparent hover:text-red-400 hover:bg-white/10 transition-colors text-neutral-400 relative shrink-0"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="relative z-10">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+            </svg>
+          </button>
         </div>
         <ColorFooter
           resolvedHexInputId={props.resolvedHexInputId}
