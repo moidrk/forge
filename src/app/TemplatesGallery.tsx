@@ -21,14 +21,10 @@ const TEMPLATES = [
   { id: "zelen", name: "Zelen", image: "linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)" },
 ];
 
-function applyTemplate(id: string, dispatch: any) {
-  // Common preset setup
+function applyTemplate(id: string, state: any, dispatch: any) {
   const baseLayerId = `shader-${Date.now()}`;
-  const layers = [
-    { id: baseLayerId, name: "Base Gradient", kind: "layer", visible: true }
-  ];
-  const store: Record<string, any> = {};
-
+  
+  // Setup store and layers
   let shaderType = "MeshGradient";
   let c1 = "#000000", c2 = "#000000", c3 = "#000000", c4 = "#000000";
 
@@ -51,6 +47,10 @@ function applyTemplate(id: string, dispatch: any) {
       break;
   }
 
+  // Preserve existing store or clear it out
+  const storeStr = state.values.layerPropertiesStore || "{}";
+  const store = JSON.parse(storeStr);
+
   store[baseLayerId] = {
     type: "shader",
     shaderType,
@@ -60,23 +60,47 @@ function applyTemplate(id: string, dispatch: any) {
     shaderColor4: { hex: c4 }
   };
 
-  // Add post processing layer
   const ppLayerId = `pp-${Date.now()}`;
+  let hasPP = false;
   if (id === "magma" || id === "promin") {
-    layers.unshift({ id: ppLayerId, name: "Glitter", kind: "layer", visible: true });
+    hasPP = true;
     store[ppLayerId] = { type: "glitter", glitterDensity: 200, glitterOpacity: 0.8, blendMode: "screen" };
   } else if (id === "giger" || id === "hlo") {
-    layers.unshift({ id: ppLayerId, name: "Grain", kind: "layer", visible: true });
+    hasPP = true;
     store[ppLayerId] = { type: "grain", grainIntensity: 0.6, blendMode: "overlay" };
   }
 
-  // Dispatch overwrites
-  dispatch({ type: "layers.reorder", layers: layers, selectedLayerId: baseLayerId });
+  // 1. Delete existing layers
+  const existingRootLayers = state.layers.filter((l: any) => !l.parentGroupId);
+  for (const layer of existingRootLayers) {
+     dispatch({ type: "layers.delete", layerId: layer.id });
+  }
+
+  // 2. Add new layers (bottom up because insertIndex default is top or bottom?)
+  // Toolcraft adds to top if insertIndex is 0
+  dispatch({
+    type: "layers.add",
+    layer: { id: baseLayerId, name: "Base Gradient", kind: "layer", visible: true },
+    insertIndex: 0
+  });
+
+  if (hasPP) {
+    dispatch({
+      type: "layers.add",
+      layer: { id: ppLayerId, name: store[ppLayerId].type === "glitter" ? "Glitter" : "Grain", kind: "layer", visible: true },
+      insertIndex: 0
+    });
+  }
+
   dispatch({ type: "controls.setValue", target: "layerPropertiesStore", value: JSON.stringify(store) });
+  
+  setTimeout(() => {
+    dispatch({ type: "layers.select", layerId: baseLayerId });
+  }, 10);
 }
 
 export function TemplatesGallery() {
-  const { dispatch } = useToolcraft();
+  const { state, dispatch } = useToolcraft();
   const [open, setOpen] = React.useState(false);
   const [confirmId, setConfirmId] = React.useState<string | null>(null);
 
@@ -86,7 +110,7 @@ export function TemplatesGallery() {
 
   const handleConfirm = () => {
     if (confirmId) {
-      applyTemplate(confirmId, dispatch);
+      applyTemplate(confirmId, state, dispatch);
       setOpen(false);
       setConfirmId(null);
     }
