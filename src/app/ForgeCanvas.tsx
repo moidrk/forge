@@ -3,6 +3,7 @@ import { useToolcraft } from "@/toolcraft/runtime/react";
 import { generatePreview, getImageLayerBounds } from "@/lib/generation/engine";
 import { DesignRecipe, DesignRecipeLayer } from "@/lib/generation/types";
 import { MeshGradient, GodRays, NeuroNoise, LiquidMetal, GrainGradient, Metaballs, GemSmoke, Warp, Water } from "@paper-design/shaders-react";
+import { CustomMesh } from "@/lib/generation/shaders/CustomMesh";
 
 export function dummyGpuCheck() { return navigator.gpu; }
 export default function ForgeCanvas() {
@@ -617,6 +618,13 @@ export function ShaderRenderer({ type, colors, image, speed = 1, layerProps = {}
   const commonProps = { style: { width: '100%', height: '100%' } as React.CSSProperties, speed, gl: { preserveDrawingBuffer: true } };
   
   switch (type) {
+    case "CustomMesh":
+      return <CustomMesh {...commonProps} colors={colors} nodes={[
+        { x: layerProps.customMeshX1 ?? 0.1, y: layerProps.customMeshY1 ?? 0.1 },
+        { x: layerProps.customMeshX2 ?? 0.9, y: layerProps.customMeshY2 ?? 0.1 },
+        { x: layerProps.customMeshX3 ?? 0.1, y: layerProps.customMeshY3 ?? 0.9 },
+        { x: layerProps.customMeshX4 ?? 0.9, y: layerProps.customMeshY4 ?? 0.9 }
+      ]} />;
     case "LiquidMetal":
       return <LiquidMetal {...commonProps} colorBack={colors[0]} colorTint={colors[1]} image={image} distortion={layerProps.liquidDistortion} contour={layerProps.liquidContour} />;
     case "Metaballs":

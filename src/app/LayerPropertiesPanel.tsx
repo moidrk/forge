@@ -51,10 +51,42 @@ function ShaderColorsPanel({ props, updateProp }: { props: any, updateProp: (key
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
-         <Color name="Color 1" hex={props.shaderColor1?.hex || "#ff0000"} onValueChange={(val) => updateProp("shaderColor1", val)} />
-         <Color name="Color 2" hex={props.shaderColor2?.hex || "#00ff00"} onValueChange={(val) => updateProp("shaderColor2", val)} />
-         <Color name="Color 3" hex={props.shaderColor3?.hex || "#0000ff"} onValueChange={(val) => updateProp("shaderColor3", val)} />
-         <Color name="Color 4" hex={props.shaderColor4?.hex || "#ffff00"} onValueChange={(val) => updateProp("shaderColor4", val)} />
+         <div className="flex flex-col gap-1">
+           <Color name="Color 1" hex={props.shaderColor1?.hex || "#ff0000"} onValueChange={(val) => updateProp("shaderColor1", val)} />
+           {props.shaderType === "CustomMesh" && (
+             <div className="flex gap-1">
+               <Slider name="X" value={props.customMeshX1 ?? 0.1} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("customMeshX1", val)} />
+               <Slider name="Y" value={props.customMeshY1 ?? 0.1} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("customMeshY1", val)} />
+             </div>
+           )}
+         </div>
+         <div className="flex flex-col gap-1">
+           <Color name="Color 2" hex={props.shaderColor2?.hex || "#00ff00"} onValueChange={(val) => updateProp("shaderColor2", val)} />
+           {props.shaderType === "CustomMesh" && (
+             <div className="flex gap-1">
+               <Slider name="X" value={props.customMeshX2 ?? 0.9} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("customMeshX2", val)} />
+               <Slider name="Y" value={props.customMeshY2 ?? 0.1} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("customMeshY2", val)} />
+             </div>
+           )}
+         </div>
+         <div className="flex flex-col gap-1">
+           <Color name="Color 3" hex={props.shaderColor3?.hex || "#0000ff"} onValueChange={(val) => updateProp("shaderColor3", val)} />
+           {props.shaderType === "CustomMesh" && (
+             <div className="flex gap-1">
+               <Slider name="X" value={props.customMeshX3 ?? 0.1} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("customMeshX3", val)} />
+               <Slider name="Y" value={props.customMeshY3 ?? 0.9} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("customMeshY3", val)} />
+             </div>
+           )}
+         </div>
+         <div className="flex flex-col gap-1">
+           <Color name="Color 4" hex={props.shaderColor4?.hex || "#ffff00"} onValueChange={(val) => updateProp("shaderColor4", val)} />
+           {props.shaderType === "CustomMesh" && (
+             <div className="flex gap-1">
+               <Slider name="X" value={props.customMeshX4 ?? 0.9} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("customMeshX4", val)} />
+               <Slider name="Y" value={props.customMeshY4 ?? 0.9} min={0} max={1} step={0.01} onValueChange={(val) => updateProp("customMeshY4", val)} />
+             </div>
+           )}
+         </div>
       </div>
     </CollapsibleSection>
   );
@@ -283,7 +315,7 @@ export function LayerPropertiesPanel() {
           <CollapsibleSection title="SHADER SETTINGS">
             <Select
               name="Shader Type"
-              options={[ { label: "Mesh Gradient", value: "MeshGradient" }, { label: "Liquid Metal", value: "LiquidMetal" }, { label: "Metaballs", value: "Metaballs" }, { label: "God Rays", value: "GodRays" }, { label: "Neuro Noise", value: "NeuroNoise" }, { label: "Grain Gradient", value: "GrainGradient" }, { label: "Gem Smoke", value: "GemSmoke" }, { label: "Warp", value: "Warp" }, { label: "Water", value: "Water" } ]}
+              options={[ { label: "Custom Mesh (Colir-style)", value: "CustomMesh" }, { label: "Mesh Gradient", value: "MeshGradient" }, { label: "Liquid Metal", value: "LiquidMetal" }, { label: "Metaballs", value: "Metaballs" }, { label: "God Rays", value: "GodRays" }, { label: "Neuro Noise", value: "NeuroNoise" }, { label: "Grain Gradient", value: "GrainGradient" }, { label: "Gem Smoke", value: "GemSmoke" }, { label: "Warp", value: "Warp" }, { label: "Water", value: "Water" } ]}
               value={props.shaderType || "MeshGradient"}
               onValueChange={(val) => updateProp("shaderType", val)}
             />
